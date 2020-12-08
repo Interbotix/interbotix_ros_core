@@ -148,6 +148,7 @@ void InterbotixRobotXS::robot_torque_enable(std::string const& cmd_type, std::st
 /// @param smart_reboot - set to True to only reboot motor(s) in a specified group that have gone into an error state
 void InterbotixRobotXS::robot_reboot_motors(std::string const& cmd_type, std::string const& name, bool const& enable, bool const& smart_reboot)
 {
+  std::vector<std::string> joints_to_torque;
   if (cmd_type == "group" && group_map.count(name) > 0)
   {
     for (auto const& joint_name:group_map[name].joint_names)
@@ -162,7 +163,7 @@ void InterbotixRobotXS::robot_reboot_motors(std::string const& cmd_type, std::st
       }
       dxl_wb.reboot(motor_map[joint_name].motor_id);
       ROS_INFO("The '%s' joint was rebooted.", joint_name.c_str());
-      if (enable) robot_torque_enable("single", joint_name, true);
+      if (enable) joints_to_torque.push_back(joint_name);
     }
     if (!smart_reboot)
       ROS_INFO("The '%s' group was rebooted.", name.c_str());
@@ -171,13 +172,18 @@ void InterbotixRobotXS::robot_reboot_motors(std::string const& cmd_type, std::st
   {
     dxl_wb.reboot(motor_map[name].motor_id);
     ROS_INFO("The '%s' joint was rebooted.", name.c_str());
-    if (enable) robot_torque_enable("single", name, true);
+    if (enable) joints_to_torque.push_back(name);
   }
   else if (cmd_type == "group" && group_map.count(name) == 0 || cmd_type == "single" && motor_map.count(name) == 0)
     ROS_WARN("The '%s' joint/group does not exist. Was it added to the motor config file?", name.c_str());
   else
     ROS_ERROR("Invalid command for argument 'cmd_type' while rebooting motors.");
-  if (enable && !smart_reboot) robot_torque_enable(cmd_type, name, enable);
+
+  for (auto const& joint_name:joints_to_torque)
+  {
+    for (auto const& name:sister_map[joint_name])
+      robot_torque_enable("single", name, true);
+  }
 }
 
 /// @brief Command a desired group of motors with the specified commands
