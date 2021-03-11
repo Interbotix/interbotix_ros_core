@@ -106,3 +106,14 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 add_executable(xs_sdk src/xs_sdk.cpp src/xs_sdk_obj.cpp)
 add_dependencies(xs_sdk ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(xs_sdk ${PROJECT_NAME} ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
+
+#############
+## Install ##
+#############
+
+## Mark executable scripts (Python etc.) for installation
+## in contrast to setup.py, you can choose the destination
+catkin_install_python(PROGRAMS
+  scripts/xs_sdk_sim
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)

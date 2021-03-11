@@ -806,7 +806,7 @@ void InterbotixRobotXS::robot_sub_command_traj(const interbotix_xs_sdk::JointTra
   else if (msg.cmd_type == "single")
     joint_names.push_back(msg.name);
 
-  if (timer_hz != 0)
+  if (timer_hz != 0 && msg.traj.points[0].positions.size() == joint_names.size())
   {
     for (size_t i{0}; i < joint_names.size(); i++)
     {
