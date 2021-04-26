@@ -428,8 +428,8 @@ class InterbotixRobotXS(object):
                         if mode == "linear_position":
                             angle = self.robot_convert_linear_position_to_radian(joint, value)
                             self.joint_states.position[self.js_index_map[joint]] = angle
-                            self.joint_states.position[self.js_index_map[gpr["left_finger"]]] = value
-                            self.joint_states.position[self.js_index_map[gpr["right_finger"]]] = -value
+                            self.joint_states.position[self.js_index_map[gpr["left_finger"]]] = value / 2.0
+                            self.joint_states.position[self.js_index_map[gpr["right_finger"]]] = -value / 2.0
                         else:
                             lin_pos = self.robot_convert_angular_position_to_linear(joint, value)
                             self.joint_states.position[self.js_index_map[joint]] = value

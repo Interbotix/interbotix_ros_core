@@ -11,6 +11,6 @@ int32 ki_pos             # acts as a pass-through to the Position_I_Gain registe
 int32 kd_pos             # acts as a pass-through to the Position_D_Gain register
 int32 k1                 # acts as a pass-through to the Feedforward_1st_Gain register
 int32 k2                 # acts as a pass-through to the Feedforward_2nd_Gain register
-int32 kp_vel             # acts as a pass-through to the Velocity_P_gain register
-int32 ki_vel             # acts as a pass-through to the Velocity_I_gain register
+int32 kp_vel             # acts as a pass-through to the Velocity_P_Gain register
+int32 ki_vel             # acts as a pass-through to the Velocity_I_Gain register
 ---
