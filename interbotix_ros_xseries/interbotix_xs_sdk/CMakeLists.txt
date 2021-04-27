@@ -79,7 +79,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS actionlib dynamixel_workbench_toolbox message_runtime roscpp sensor_msgs std_msgs trajectory_msgs urdf yaml-cpp
+  CATKIN_DEPENDS actionlib dynamixel_workbench_toolbox message_runtime roscpp sensor_msgs std_msgs trajectory_msgs urdf
 )
 
 ###########
