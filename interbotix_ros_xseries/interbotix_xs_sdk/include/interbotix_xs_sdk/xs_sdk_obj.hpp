@@ -1,23 +1,23 @@
 #ifndef XS_SDK_OBJ_H_
 #define XS_SDK_OBJ_H_
 
-#include <ros/ros.h>
+#include <rclcpp/rclcpp.hpp>
 #include <urdf/model.h>
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
-#include <sensor_msgs/JointState.h>
-#include <trajectory_msgs/JointTrajectory.h>
-#include <trajectory_msgs/JointTrajectoryPoint.h>
+#include <sensor_msgs/msg/joint_state.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
+#include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <dynamixel_workbench_toolbox/dynamixel_workbench.h>
-#include "interbotix_xs_msgs/Reboot.h"
-#include "interbotix_xs_msgs/RobotInfo.h"
-#include "interbotix_xs_msgs/MotorGains.h"
-#include "interbotix_xs_msgs/TorqueEnable.h"
-#include "interbotix_xs_msgs/OperatingModes.h"
-#include "interbotix_xs_msgs/RegisterValues.h"
-#include "interbotix_xs_msgs/JointGroupCommand.h"
-#include "interbotix_xs_msgs/JointSingleCommand.h"
-#include "interbotix_xs_msgs/JointTrajectoryCommand.h"
+#include "interbotix_xs_msgs/srv/reboot.hpp"
+#include "interbotix_xs_msgs/srv/robot_info.hpp"
+#include "interbotix_xs_msgs/srv/motor_gains.hpp"
+#include "interbotix_xs_msgs/srv/torque_enable.hpp"
+#include "interbotix_xs_msgs/srv/operating_modes.hpp"
+#include "interbotix_xs_msgs/srv/register_values.hpp"
+#include "interbotix_xs_msgs/msg/joint_group_command.hpp"
+#include "interbotix_xs_msgs/msg/joint_single_command.hpp"
+#include "interbotix_xs_msgs/msg/joint_trajectory_command.hpp"
 
 #define BAUDRATE 1000000                                                // All motors are preset to 1M baud
 #define PORT "/dev/ttyDXL"                                              // Udev rule creates a symlink with this name
@@ -66,15 +66,24 @@ struct MotorInfo                                                        // Struc
   int32_t value;                                                        // Value to write to the above register for the specified motor
 };
 
+using MotorGains = interbotix_xs_msgs::srv::MotorGains;
+using OperatingModes = interbotix_xs_msgs::srv::OperatingModes;
+using Reboot = interbotix_xs_msgs::srv::Reboot;
+using RegisterValues = interbotix_xs_msgs::srv::RegisterValues;
+using RobotInfo = interbotix_xs_msgs::srv::RobotInfo;
+using TorqueEnable = interbotix_xs_msgs::srv::TorqueEnable;
+using JointGroupCommand = interbotix_xs_msgs::msg::JointGroupCommand;
+using JointSingleCommand = interbotix_xs_msgs::msg::JointSingleCommand;
+using JointTrajectoryCommand = interbotix_xs_msgs::msg::JointTrajectoryCommand;
+
 // Interbotix Core Class to build any type of Dynamixel-based robot
-class InterbotixRobotXS
+class InterbotixRobotXS : public rclcpp::Node
 {
 public:
 
   /// @brief Constructor for the InterbotixRobotXS
   /// @param node_handle - ROS NodeHandle
-  /// @param success [out] - bool indicating if the node launched successfully
-  explicit InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success);
+  explicit InterbotixRobotXS(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
   /// @brief Destructor for the InterbotixRobotXS
   ~InterbotixRobotXS();
@@ -175,22 +184,21 @@ private:
   YAML::Node motor_configs;                                                     // Holds all the information in the motor_configs YAML file
   YAML::Node mode_configs;                                                      // Holds all the information in the mode_configs YAML file
 
-  ros::NodeHandle node;                                                         // ROS Node handle
-  ros::Publisher pub_joint_states;                                              // ROS Publisher responsible for publishing joint states
-  ros::Subscriber sub_command_group;                                            // ROS Subscriber responsible for subscribing to JointGroupCommand messages
-  ros::Subscriber sub_command_single;                                           // ROS Subscriber responsible for subscribing to JointSingleCommand messages
-  ros::Subscriber sub_command_traj;                                             // ROS Subscriber responsible for subscribing to JointTrajectoryCommand messages
-  ros::ServiceServer srv_motor_gains;                                           // ROS Service Server used to set motor PID gains
-  ros::ServiceServer srv_operating_modes;                                       // ROS Service Server used to set motor operating modes
-  ros::ServiceServer srv_set_registers;                                         // ROS Service Server used to set any motor register
-  ros::ServiceServer srv_get_registers;                                         // ROS Service Server used to get any motor register
-  ros::ServiceServer srv_get_robot_info;                                        // ROS Service Server used to get general information about the robot (like limits)
-  ros::ServiceServer srv_torque_enable;                                         // ROS Service Server used to torque on/off any motor
-  ros::ServiceServer srv_reboot_motors;                                         // ROS Service Server used to reboot any motor
-  ros::Timer tmr_joint_states;                                                  // ROS Timer used to continuously publish joint states
-  ros::Timer tmr_joint_traj;                                                    // ROS One-Shot Timer used when commanding motor trajectories
-  sensor_msgs::JointState joint_states;                                         // Holds the most recent JointState message
-  interbotix_xs_msgs::JointTrajectoryCommand joint_traj_cmd;                     // Holds the most recent JointTrajectoryCommand message
+  rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joint_states;  // ROS Publisher responsible for publishing joint states
+  rclcpp::Subscription<JointGroupCommand>::SharedPtr sub_command_group;         // ROS Subscriber responsible for subscribing to JointGroupCommand messages
+  rclcpp::Subscription<JointSingleCommand>::SharedPtr sub_command_single;       // ROS Subscriber responsible for subscribing to JointSingleCommand messages
+  rclcpp::Subscription<JointTrajectoryCommand>::SharedPtr sub_command_traj;     // ROS Subscriber responsible for subscribing to JointTrajectoryCommand messages
+  rclcpp::Service<MotorGains>::SharedPtr srv_motor_gains;                       // ROS Service Server used to set motor PID gains
+  rclcpp::Service<OperatingModes>::SharedPtr srv_operating_modes;               // ROS Service Server used to set motor operating modes
+  rclcpp::Service<RegisterValues>::SharedPtr srv_set_registers;                 // ROS Service Server used to set any motor register
+  rclcpp::Service<RegisterValues>::SharedPtr srv_get_registers;                 // ROS Service Server used to get any motor register
+  rclcpp::Service<RobotInfo>::SharedPtr srv_get_robot_info;                     // ROS Service Server used to get general information about the robot (like limits)
+  rclcpp::Service<TorqueEnable>::SharedPtr srv_torque_enable;                   // ROS Service Server used to torque on/off any motor
+  rclcpp::Service<Reboot>::SharedPtr srv_reboot_motors;                         // ROS Service Server used to reboot any motor
+  rclcpp::TimerBase::SharedPtr tmr_joint_states;                                // ROS Timer used to continuously publish joint states
+  rclcpp::TimerBase::SharedPtr tmr_joint_traj;                                  // ROS One-Shot Timer used when commanding motor trajectories
+  sensor_msgs::msg::JointState joint_states;                                    // Holds the most recent JointState message
+  JointTrajectoryCommand::SharedPtr joint_traj_cmd;                             // Holds the most recent JointTrajectoryCommand message
 
   std::string port;                                                             // Holds the USB port name that connects to the U2D2
   std::string js_topic;                                                         // Desired JointState topic name
@@ -216,6 +224,9 @@ private:
   /// @brief Pings all motors to make sure they can be found
   /// @param <bool> [out] - True if all motors were found; False otherwise
   bool robot_ping_motors(void);
+
+  /// @brief Declare all parameters needed by the node
+  void robot_init_parameters(void);
 
   /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
   /// @param <bool> [out] - True if all register values were written successfully; False otherwise
@@ -249,59 +260,57 @@ private:
   /// @brief ROS Subscriber callback function to command a group of joints
   /// @param msg - JointGroupCommand message dictating the joint group to command along with the actual commands
   /// @details - refer to the message definition for details
-  void robot_sub_command_group(const interbotix_xs_msgs::JointGroupCommand &msg);
+  void robot_sub_command_group(const JointGroupCommand::SharedPtr msg);
 
   /// @brief ROS Subscriber callback function to command a single joint
   /// @param msg - JointSingleCommand message dictating the joint to command along with the actual command
   /// @details - refer to the message definition for details
-  void robot_sub_command_single(const interbotix_xs_msgs::JointSingleCommand &msg);
+  void robot_sub_command_single(const JointSingleCommand::SharedPtr msg);
 
   /// @brief ROS Subscriber callback function to command a joint trajectory
   /// @param msg - JointTrajectoryCommand message dictating the joint(s) to command along with the desired trajectory
   /// @details - refer to the message definition for details
-  void robot_sub_command_traj(const interbotix_xs_msgs::JointTrajectoryCommand &msg);
+  void robot_sub_command_traj(const JointTrajectoryCommand::SharedPtr msg);
 
   /// @brief ROS Service to torque the joints on the robot on/off
   /// @param req - TorqueEnable service message request
   /// @param res [out] - TorqueEnable service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable::Request &req, interbotix_xs_msgs::TorqueEnable::Response &res);
+  bool robot_srv_torque_enable(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<TorqueEnable::Request> req, std::shared_ptr<TorqueEnable::Response> res);
 
   /// @brief ROS Service to reboot the motors on the robot
   /// @param req - Reboot service message request
   /// @param res [out] - Reboot service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Request &req, interbotix_xs_msgs::Reboot::Response &res);
+  bool robot_srv_reboot_motors(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<Reboot::Request> req, std::shared_ptr<Reboot::Response> res);
 
   /// @brief ROS Service that allows the user to get information about the robot
   /// @param req - RobotInfo service message request
   /// @param res [out] - RobotInfo service message response
   /// @details - refer to the service definition for details
-  bool robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::Request &req, interbotix_xs_msgs::RobotInfo::Response &res);
+  bool robot_srv_get_robot_info(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<RobotInfo::Request> req, std::shared_ptr<RobotInfo::Response> res);
 
   /// @brief ROS Service that allows the user to change operating modes
   /// @param req - OperatingModes service message request
   /// @param res [out] - OperatingModes service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_set_operating_modes(interbotix_xs_msgs::OperatingModes::Request &req, interbotix_xs_msgs::OperatingModes::Response &res);
+  bool robot_srv_set_operating_modes(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<OperatingModes::Request> req, std::shared_ptr<OperatingModes::Response> res);
 
   /// @brief ROS Service that allows the user to set the motor firmware PID gains
   /// @param req - MotorGains service message request
   /// @param res [out] - MotorGains service message response [unused]
   /// @details - refer to the service defintion for details
-  bool robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorGains::Request &req, interbotix_xs_msgs::MotorGains::Response &res);
+  bool robot_srv_set_motor_pid_gains(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<MotorGains::Request> req, std::shared_ptr<MotorGains::Response> res);
 
   /// @brief ROS Service that allows the user to change a specific register to a specific value for multiple motors
   /// @param req - RegisterValues service message request
-  /// @param res [out] - RegisterValues service message response [unused]
-  /// @details - refer to the service definition for details
-  bool robot_srv_set_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res);
+  bool robot_srv_set_motor_registers(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<RegisterValues::Request> req, std::shared_ptr<RegisterValues::Response> res);
 
   /// @brief ROS Service that allows the user to read a specific register on multiple motors
   /// @param req - RegisterValues service message request
   /// @param res [out] - RegisterValues service message response
   /// @details - refer to the service definition for details
-  bool robot_srv_get_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res);
+  bool robot_srv_get_motor_registers(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<RegisterValues::Request>req, std::shared_ptr<RegisterValues::Response> res);
 
   /// @brief Checks service call requests for validity
   /// @param cmd_type request cmd_type field
@@ -309,14 +318,11 @@ private:
   /// @returns true if the service call request is valid, false otherwise
   /// @details cmd_type must be 'single' or 'group'; name must be in the group_map or motor_map
   bool robot_srv_validate(const std::string &cmd_type, std::string &name);
-
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
-  /// @param e - TimerEvent message [unused]
-  void robot_execute_trajectory(const ros::TimerEvent &e);
+  void robot_execute_trajectory();
 
   /// @brief ROS Timer that reads current states from all the motors and publishes them to the joint_states topic
-  /// @param e - TimerEvent message [unused]
-  void robot_update_joint_states(const ros::TimerEvent &e);
+  void robot_update_joint_states();
 };
 
 #endif
