@@ -58,6 +58,14 @@ groupSyncRead getdata failed
 
 ... that means the computer failed to read some of the registers on the motors (typically, it's the Present Position, Present_Velocity, and Present_Current/Present_Load registers as these are read constantly so that the joint state topic can be updated). This could happen if the microUSB cable connecting the computer to the U2D2 is not plugged in fully, or if one or more of the 3-pin cables connecting the Dynamixels together become loose during operation. To stop these errors, just push in all loose cables.
 
+## Less Common Issues
+
+##### U2D2 not recognized (no symlink created)
+You may run into an issue where the computer is able to detect that it is connected to a device via `lsusb`, but no entry is created in the /dev directory. One possible reason may be that the FTDI drivers are out of date or not compatible with the U2D2 device. To fix this issue, download the latest recommended [VCP drivers](https://ftdichip.com/drivers/vcp-drivers/) for Linux. Then reload and install the drivers by navigating to the unpacked driver and running the following:
+```bash
+$ sudo modprobe ftdi_sio
+```
+
 ## Helpful Tips
 
 ##### Increase Motor Accuracy
