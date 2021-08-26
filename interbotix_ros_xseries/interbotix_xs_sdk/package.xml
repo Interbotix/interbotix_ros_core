@@ -15,6 +15,7 @@
   <depend>control_msgs</depend>
   <depend>dynamixel_workbench_toolbox</depend>
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
   <depend>sensor_msgs</depend>
   <depend>std_msgs</depend>
   <depend>trajectory_msgs</depend>
