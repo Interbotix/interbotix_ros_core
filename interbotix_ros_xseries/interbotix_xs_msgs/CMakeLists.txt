@@ -11,6 +11,7 @@ endif()
 
 find_package(rosidl_default_generators REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(trajectory_msgs REQUIRED)
 
  set (MSG_FILES
    msg/JointGroupCommand.msg
@@ -30,7 +31,7 @@ find_package(std_msgs REQUIRED)
  rosidl_generate_interfaces(${PROJECT_NAME}
   ${MSG_FILES}
   ${SRV_FILES}
- DEPENDENCIES std_msgs
+ DEPENDENCIES std_msgs trajectory_msgs
 )
 
 ament_package()
