@@ -35,31 +35,31 @@ class InterbotixRobotXS(Node):
         self.declare_parameter('robot_description', '')
         self.get_urdf_info()
         self.robot_get_motor_configs()
-        self.create_service('torque_enable', TorqueEnable, self.robot_srv_torque_enable)
-        self.create_service('reboot_motors', Reboot, self.robot_srv_reboot_motors)
-        self.create_service('get_robot_info', RobotInfo, self.robot_srv_get_robot_info)
-        self.create_service('set_operating_modes', OperatingModes, self.robot_srv_set_operating_modes)
-        self.create_service('set_motor_pid_gains', MotorGains, self.robot_srv_set_motor_pid_gains)
-        self.create_service('set_motor_registers', RegisterValues, self.robot_srv_set_motor_registers)
-        self.create_service('get_motor_registers', RegisterValues, self.robot_srv_get_motor_registers)
-        self.create_subscription('commands/joint_group', JointGroupCommand, self.robot_sub_command_group)
-        self.create_subscription('commands/joint_single', JointSingleCommand, self.robot_sub_command_single)
-        self.create_subscription('commands/joint_trajectory', JointTrajectoryCommand, self.robot_sub_command_traj)
-        self.pub_joint_states = self.create_publisher(self.js_topic, JointState, queue_size=1)
-        self.create_timer(rclpy.Duration(1.0/self.timer_hz), self.robot_update_joint_states)
+        self.create_service(TorqueEnable, 'torque_enable', self.robot_srv_torque_enable)
+        self.create_service(Reboot, 'reboot_motors', self.robot_srv_reboot_motors)
+        self.create_service(RobotInfo, 'get_robot_info', self.robot_srv_get_robot_info)
+        self.create_service(OperatingModes, 'set_operating_modes', self.robot_srv_set_operating_modes)
+        self.create_service(MotorGains, 'set_motor_pid_gains', self.robot_srv_set_motor_pid_gains)
+        self.create_service(RegisterValues, 'set_motor_registers', self.robot_srv_set_motor_registers)
+        self.create_service(RegisterValues, 'get_motor_registers', self.robot_srv_get_motor_registers)
+        self.create_subscription(JointGroupCommand, 'commands/joint_group', self.robot_sub_command_group, 10)
+        self.create_subscription(JointSingleCommand, 'commands/joint_single', self.robot_sub_command_single, 10)
+        self.create_subscription(JointTrajectoryCommand, 'commands/joint_trajectory', self.robot_sub_command_traj, 10)
+        self.pub_joint_states = self.create_publisher(JointState, self.js_topic, 10)
+        self.create_timer(1.0/self.timer_hz, self.robot_update_joint_states)
 
 
     ### @brief Loads the URDF to get joint limit information
     def get_urdf_info(self):
         if self.has_parameter('robot_description'):
-            self.rd = URDF.from_xml_string(self.get_parameter('robot_description'))
+            self.rd = URDF.from_xml_string(self.get_parameter('robot_description').get_parameter_value().string_value)
 
     ### @brief Loads the 'motor_configs' and 'mode_configs' YAML files and populates various class dictionaries
     def robot_get_motor_configs(self):
 
         # get filepaths to the YAML files from the ROS parameter server
-        motor_configs_filepath = self.get_parameter('motor_configs')
-        mode_configs_filepath = self.get_parameter('mode_configs')
+        motor_configs_filepath = self.get_parameter('motor_configs').get_parameter_value().string_value
+        mode_configs_filepath = self.get_parameter('mode_configs').get_parameter_value().string_value
 
         # try to open and load both files into local variables
         try:
@@ -295,7 +295,8 @@ class InterbotixRobotXS(Node):
                     self.robot_write_joint_command(msg.name, points[x].effort[0])
             if x < len(points) - 1:
                 period = (points[x].time_from_start - (self.get_clock().now() - time_start))
-                rospy.sleep(period)
+                rate = self.create_rate(period)
+                rate.sleep()
 
         self.exectue_joint_traj = False
 
@@ -413,7 +414,7 @@ class InterbotixRobotXS(Node):
     ###            when the last element is taken out from the list, the dictionary key is thrown out. Otherwise, 'self.commands[joint]'
     ###            is a scalar. If the scalar is a position, the dictionary key is thrown out afterwards. Otherwise, the dictionary key is
     ###            not thrown out unless its value is 0 (which is what you want for 'pwm', 'current', or 'velocity' modes)
-    def robot_update_joint_states(self, event):
+    def robot_update_joint_states(self):
         with self.cmd_mutex:
             for joint in self.commands.copy():
                 mode = self.motor_map[joint]["mode"]
@@ -460,7 +461,7 @@ class InterbotixRobotXS(Node):
                             self.joint_states.position[self.js_index_map[gpr["left_finger"]]] = lin_pos
                             self.joint_states.position[self.js_index_map[gpr["right_finger"]]] = -lin_pos
 
-            self.joint_states.header.stamp = self.get_clock().now()
+            self.joint_states.header.stamp = self.get_clock().now().to_msg()
             self.pub_joint_states.publish(self.joint_states)
 
 def main(args=None):
