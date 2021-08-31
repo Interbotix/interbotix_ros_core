@@ -869,6 +869,7 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
   rclcpp::Rate r(10);
   while (rclcpp::ok() && joint_states.name.size() == 0)
   {
+    rclcpp::spin_some(this->get_node_base_interface());
     r.sleep();
   }
 }
@@ -925,6 +926,8 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
     }
   }
   joint_traj_cmd = msg;
+  cntr = 1;
+  set_up_start_time = true;
   execute_joint_traj = true;
 }
 
@@ -1074,14 +1077,25 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(const std::shared_ptr<rmw_
 /// @param e - TimerEvent message [unused]
 void InterbotixRobotXS::robot_execute_trajectory()
 {
-  static size_t cntr = 1;
 
+  if (!execute_joint_traj){
+    return;
+  }
+  
   if (cntr == joint_traj_cmd->traj.points.size())
   {
     execute_joint_traj = false;
     cntr = 1;
+    set_up_start_time = true;
     return;
   }
+
+  if (set_up_start_time){
+    traj_start_time = joint_traj_cmd->traj.points[cntr].time_from_start + this->get_clock()->now();
+    set_up_start_time = false;
+  }
+  if (this->get_clock()->now() < traj_start_time)
+    return;
 
   if (joint_traj_cmd->cmd_type == "group")
   {
@@ -1111,6 +1125,7 @@ void InterbotixRobotXS::robot_execute_trajectory()
       robot_write_joint_command(joint_traj_cmd->name, joint_traj_cmd->traj.points[cntr].effort.at(0));
   }
   cntr++;
+  set_up_start_time = true;
 }
 
 /// @brief ROS Timer that reads current states from all the motors and publishes them to the joint_states topic

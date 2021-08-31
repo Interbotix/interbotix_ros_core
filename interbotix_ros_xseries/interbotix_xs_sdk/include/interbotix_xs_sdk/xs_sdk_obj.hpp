@@ -200,6 +200,9 @@ private:
   sensor_msgs::msg::JointState joint_states;                                    // Holds the most recent JointState message
   JointTrajectoryCommand::SharedPtr joint_traj_cmd;                             // Holds the most recent JointTrajectoryCommand message
 
+  rclcpp::Time traj_start_time;                                                 // Indicating the trajectory start time
+  bool set_up_start_time;                                                       // Inficating whether to set up relative time.
+  size_t cntr;                                                                  // Trajectory counter
   std::string port;                                                             // Holds the USB port name that connects to the U2D2
   std::string js_topic;                                                         // Desired JointState topic name
   std::vector<MotorInfo> motor_info_vec;                                        // Vector containing all the desired EEPROM register values to command the motors at startup
