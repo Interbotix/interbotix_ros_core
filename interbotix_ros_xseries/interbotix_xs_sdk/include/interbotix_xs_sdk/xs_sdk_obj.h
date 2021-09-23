@@ -72,7 +72,8 @@ public:
 
   /// @brief Constructor for the InterbotixRobotXS
   /// @param node_handle - ROS NodeHandle
-  explicit InterbotixRobotXS(ros::NodeHandle *node_handle);
+  /// @param success [out] - bool indicating if the node launched successfully
+  explicit InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success);
 
   /// @brief Destructor for the InterbotixRobotXS
   ~InterbotixRobotXS();
