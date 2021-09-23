@@ -2,24 +2,31 @@
 
 /// @brief Constructor for the InterbotixRobotXS
 /// @param node_handle - ROS NodeHandle
-InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle)
+InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success)
     : node(*node_handle)
 {
-  bool success;
   if (!robot_get_motor_configs())
+  {
+    success = false;
     return;
+  }
   
   if (!robot_init_port())
+  {
+    success = false;
     return;
+  }
 
   if (!robot_ping_motors())
   {
+    success = false;
     ROS_ERROR("[xs_sdk] Could not find all motors. Shutting down...");
     return;
   }
 
   if (!robot_load_motor_configs())
   {
+    success = false;
     ROS_ERROR("[xs_sdk] Failed to write configurations to all motors. Shutting down...");
     return;
   }
