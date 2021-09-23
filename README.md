@@ -47,6 +47,13 @@ The third software layer is optional and only exists to provide Python modules o
 ##### Research Layer
 The final software layer is the layer at which an end user programs their own code - for manipulation, navigation, computer vision, machine learning or some other application. For example, all the ROS packages and Python scripts within the *interbotix_XXXXX_examples* directory (which exist in the repositories that build on-top of this one) could be described as 'application' layer code.
 
+#### Video Overview
+<p align="center">
+  <a href=”https://www.youtube.com/watch?v=wCWzuL05aN8”>
+    <img width="410" height="auto" src="https://www.trossenrobotics.com/shared/github/github_irros_overview.png">
+  </a>
+</p>
+
 ## Contributing
 Feel free to send PRs to add features to currently existing Actuator ROS wrappers or to include a new one. Note that all PRs should follow the structure and naming conventions outlined in the repo including documentation.
 
