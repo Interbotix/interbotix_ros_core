@@ -1,0 +1,24 @@
+name: build-melodic
+
+on: [push, pull_request]
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  industrial_ci:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: melodic, ROS_REPO: main}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v1
+      - name: Create src directory for xs
+        run: |
+          rm interbotix_ros_xseries/CATKIN_IGNORE
+          mkdir src
+          mv interbotix_ros_xseries src
+      - uses: 'ros-industrial/industrial_ci@master'
+        env: ${{matrix.env}}
