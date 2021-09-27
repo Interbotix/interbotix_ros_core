@@ -304,32 +304,31 @@ class InterbotixRobotXS(Node):
     ### @param req - TorqueEnable service message request
     ### @return <obj> - TorqueEnable service message response [unused]
     ### @details - refer to the service definition for details
-    def robot_srv_torque_enable(self, req):
+    def robot_srv_torque_enable(self, req, res):
         if (req.cmd_type == "group"):
             if (req.enable): self.get_logger().info("The '%s' group was torqued on." % req.name)
             else: self.get_logger().info("The '%s' group was torqued off." % req.name)
         else:
             if (req.enable): self.get_logger().info("The '%s' joint was torqued on." % req.name)
             else: self.get_logger().info("The '%s' joint was torqued off." % req.name)
-        return TorqueEnable.Response()
+        return res
 
     ### @brief ROS Service to 'simulate' rebooting the motors on the robot (doesn't actually do anything)
     ### @param req - Reboot service message request
     ### @return <obj> - Reboot service message response [unused]
     ### @details - refer to the service definition for details
-    def robot_srv_reboot_motors(self, req):
+    def robot_srv_reboot_motors(self, req, res):
         if (req.cmd_type == "group"):
             self.get_logger().info("The '%s' group was rebooted." % req.name)
         else:
             self.get_logger().info("The '%s' joint was rebooted." % req.name)
-        return Reboot.Response()
+        return res
 
     ### @brief ROS Service that allows the user to get information about the robot
     ### @param req - RobotInfo service message request
     ### @return <obj> - RobotInfo service message response
     ### @details - refer to the service definition for details
-    def robot_srv_get_robot_info(self, req):
-        res = RobotInfoResponse()
+    def robot_srv_get_robot_info(self, req, res):
         joint_names = []
         if (req.cmd_type == "group"):
             joint_names = self.group_map[req.name]["joint_names"]
@@ -363,23 +362,23 @@ class InterbotixRobotXS(Node):
     ### @param req - OperatingModes service message request
     ### @return <obj> - OperatingModes service message response [unused]
     ### @details - refer to the service definition for details
-    def robot_srv_set_operating_modes(self, req):
+    def robot_srv_set_operating_modes(self, req, res):
         self.robot_set_operating_modes(req.cmd_type, req.name, req.mode, req.profile_type, req.profile_velocity, req.profile_acceleration)
-        return OperatingModes.Response()
+        return res
 
     ### @brief ROS Service that allows the user to set the motor firmware PID gains (doesn't actually do anything)
     ### @param req - MotorGains service message request
     ### @return <obj> - MotorGains service message response [unused]
     ### @details - refer to the service defintion for details
-    def robot_srv_set_motor_pid_gains(self, req):
-        return MotorGains.Response()
+    def robot_srv_set_motor_pid_gains(self, req, res):
+        return res
 
     ### @brief ROS Service that allows the user to change a specific register to a specific value for multiple motors
     ### @param req - RegisterValues service message request
     ### @return <obj> - RegisterValues service message response [unused]
     ### @details - refer to the service definition for details - only works with the 'Profile_Velocity' and
     ###            'Profile_Acceleration' registers; otherwise, it doesn't do anything
-    def robot_srv_set_motor_registers(self, req):
+    def robot_srv_set_motor_registers(self, req, res):
         if req.reg == "Profile_Velocity" or req.reg == "Profile_Acceleration":
             reg = "profile_velocity" if req.reg == "Profile_Velocity" else "profile_acceleration"
             if req.cmd_type == "group":
@@ -388,15 +387,14 @@ class InterbotixRobotXS(Node):
                     self.motor_map[joint][reg] = req.value
             elif req.cmd_type == "single":
                 self.motor_map[req.name][reg] = req.value
-        return RegisterValues.Response()
+        return res
 
     ### @brief ROS Service that allows the user to read a specific register on multiple motors
     ### @param req - RegisterValues service message request
     ### @return <obj> - RegisterValues service message response
     ### @details - refer to the service definition for details - only works with the 'Profile_Velocity' and
     ###            'Profile_Acceleration' registers; otherwise, it doesn't do anything
-    def robot_srv_get_motor_registers(self, req):
-        res = RegisterValues.Response()
+    def robot_srv_get_motor_registers(self, req, res):
         if req.reg == "Profile_Velocity" or req.reg == "Profile_Acceleration":
             reg = "profile_velocity" if req.reg == "Profile_Velocity" else "profile_acceleration"
             if req.cmd_type == "group":
