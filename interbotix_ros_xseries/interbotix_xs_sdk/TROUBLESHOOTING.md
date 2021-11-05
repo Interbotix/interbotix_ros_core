@@ -30,7 +30,7 @@ Similarly, overheating can occur if commanding high PWM or current values to a m
 In any event, to fix this error, either power cycle the motors (unplug/replug the power cable to the motor hub), or call the `reboot_motors` ROS service for those particular motors. The advantage of doing the second approach is that the ROS session does not have to be shut down beforehand.
 
 ##### Can't find Dynamixel ID
-If you see a red error message in the terminal after launching the ROS driver node that says `Can't find Dynamixel ID 1` or similar, don't panic! All the node is trying to say is that it tried to ping a motor, but never received a response. This could happen due to a few reasons.
+If you see a red error message in the terminal after launching the ROS driver node that says `[xs_sdk] Can't find Dynamixel ID '1', Joint Name : 'waist'` or similar, don't panic! All the node is trying to say is that it tried to ping the motor with that ID and joint name, but never received a response. This could happen due to a few reasons:
 
 - *One or more motors are in an error state* - If any motor has a red flashing LED, the ROS node will not be able to find it during startup. In this case, unplug/replug power from from the motor hub and try again
 
