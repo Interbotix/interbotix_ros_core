@@ -1,6 +1,12 @@
 name: build-noetic
 
-on: [push, pull_request]
+on: # run CI on pushes and PRs to main branch
+  push:
+    branches:
+      main
+  pull_request:
+    branches:
+      main
 
 defaults:
   run:
