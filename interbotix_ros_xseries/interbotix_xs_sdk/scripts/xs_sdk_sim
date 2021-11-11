@@ -5,8 +5,8 @@ import yaml
 import rospy
 import threading
 import numpy as np
-from interbotix_xs_sdk.msg import *
-from interbotix_xs_sdk.srv import *
+from interbotix_xs_msgs.msg import *
+from interbotix_xs_msgs.srv import *
 from urdf_parser_py.urdf import URDF
 from sensor_msgs.msg import JointState
 

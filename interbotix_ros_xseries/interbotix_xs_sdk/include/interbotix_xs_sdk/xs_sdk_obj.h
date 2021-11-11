@@ -9,15 +9,15 @@
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <dynamixel_workbench_toolbox/dynamixel_workbench.h>
-#include "interbotix_xs_sdk/Reboot.h"
-#include "interbotix_xs_sdk/RobotInfo.h"
-#include "interbotix_xs_sdk/MotorGains.h"
-#include "interbotix_xs_sdk/TorqueEnable.h"
-#include "interbotix_xs_sdk/OperatingModes.h"
-#include "interbotix_xs_sdk/RegisterValues.h"
-#include "interbotix_xs_sdk/JointGroupCommand.h"
-#include "interbotix_xs_sdk/JointSingleCommand.h"
-#include "interbotix_xs_sdk/JointTrajectoryCommand.h"
+#include "interbotix_xs_msgs/Reboot.h"
+#include "interbotix_xs_msgs/RobotInfo.h"
+#include "interbotix_xs_msgs/MotorGains.h"
+#include "interbotix_xs_msgs/TorqueEnable.h"
+#include "interbotix_xs_msgs/OperatingModes.h"
+#include "interbotix_xs_msgs/RegisterValues.h"
+#include "interbotix_xs_msgs/JointGroupCommand.h"
+#include "interbotix_xs_msgs/JointSingleCommand.h"
+#include "interbotix_xs_msgs/JointTrajectoryCommand.h"
 
 #define BAUDRATE 1000000                                                // All motors are preset to 1M baud
 #define PORT "/dev/ttyDXL"                                              // Udev rule creates a symlink with this name
@@ -189,7 +189,7 @@ private:
   ros::Timer tmr_joint_states;                                                  // ROS Timer used to continuously publish joint states
   ros::Timer tmr_joint_traj;                                                    // ROS One-Shot Timer used when commanding motor trajectories
   sensor_msgs::JointState joint_states;                                         // Holds the most recent JointState message
-  interbotix_xs_sdk::JointTrajectoryCommand joint_traj_cmd;                     // Holds the most recent JointTrajectoryCommand message
+  interbotix_xs_msgs::JointTrajectoryCommand joint_traj_cmd;                     // Holds the most recent JointTrajectoryCommand message
 
   std::string port;                                                             // Holds the USB port name that connects to the U2D2
   std::string js_topic;                                                         // Desired JointState topic name
@@ -248,59 +248,59 @@ private:
   /// @brief ROS Subscriber callback function to command a group of joints
   /// @param msg - JointGroupCommand message dictating the joint group to command along with the actual commands
   /// @details - refer to the message definition for details
-  void robot_sub_command_group(const interbotix_xs_sdk::JointGroupCommand &msg);
+  void robot_sub_command_group(const interbotix_xs_msgs::JointGroupCommand &msg);
 
   /// @brief ROS Subscriber callback function to command a single joint
   /// @param msg - JointSingleCommand message dictating the joint to command along with the actual command
   /// @details - refer to the message definition for details
-  void robot_sub_command_single(const interbotix_xs_sdk::JointSingleCommand &msg);
+  void robot_sub_command_single(const interbotix_xs_msgs::JointSingleCommand &msg);
 
   /// @brief ROS Subscriber callback function to command a joint trajectory
   /// @param msg - JointTrajectoryCommand message dictating the joint(s) to command along with the desired trajectory
   /// @details - refer to the message definition for details
-  void robot_sub_command_traj(const interbotix_xs_sdk::JointTrajectoryCommand &msg);
+  void robot_sub_command_traj(const interbotix_xs_msgs::JointTrajectoryCommand &msg);
 
   /// @brief ROS Service to torque the joints on the robot on/off
   /// @param req - TorqueEnable service message request
   /// @param res [out] - TorqueEnable service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_torque_enable(interbotix_xs_sdk::TorqueEnable::Request &req, interbotix_xs_sdk::TorqueEnable::Response &res);
+  bool robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable::Request &req, interbotix_xs_msgs::TorqueEnable::Response &res);
 
   /// @brief ROS Service to reboot the motors on the robot
   /// @param req - Reboot service message request
   /// @param res [out] - Reboot service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_reboot_motors(interbotix_xs_sdk::Reboot::Request &req, interbotix_xs_sdk::Reboot::Response &res);
+  bool robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Request &req, interbotix_xs_msgs::Reboot::Response &res);
 
   /// @brief ROS Service that allows the user to get information about the robot
   /// @param req - RobotInfo service message request
   /// @param res [out] - RobotInfo service message response
   /// @details - refer to the service definition for details
-  bool robot_srv_get_robot_info(interbotix_xs_sdk::RobotInfo::Request &req, interbotix_xs_sdk::RobotInfo::Response &res);
+  bool robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::Request &req, interbotix_xs_msgs::RobotInfo::Response &res);
 
   /// @brief ROS Service that allows the user to change operating modes
   /// @param req - OperatingModes service message request
   /// @param res [out] - OperatingModes service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_set_operating_modes(interbotix_xs_sdk::OperatingModes::Request &req, interbotix_xs_sdk::OperatingModes::Response &res);
+  bool robot_srv_set_operating_modes(interbotix_xs_msgs::OperatingModes::Request &req, interbotix_xs_msgs::OperatingModes::Response &res);
 
   /// @brief ROS Service that allows the user to set the motor firmware PID gains
   /// @param req - MotorGains service message request
   /// @param res [out] - MotorGains service message response [unused]
   /// @details - refer to the service defintion for details
-  bool robot_srv_set_motor_pid_gains(interbotix_xs_sdk::MotorGains::Request &req, interbotix_xs_sdk::MotorGains::Response &res);
+  bool robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorGains::Request &req, interbotix_xs_msgs::MotorGains::Response &res);
 
   /// @brief ROS Service that allows the user to change a specific register to a specific value for multiple motors
   /// @param req - RegisterValues service message request
   /// @param res [out] - RegisterValues service message response [unused]
   /// @details - refer to the service definition for details
-  bool robot_srv_set_motor_registers(interbotix_xs_sdk::RegisterValues::Request &req, interbotix_xs_sdk::RegisterValues::Response &res);
+  bool robot_srv_set_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res);
 
   /// @brief ROS Service that allows the user to read a specific register on multiple motors
   /// @param req - RegisterValues service message request
   /// @param res [out] - RegisterValues service message response
   /// @details - refer to the service definition for details
-  bool robot_srv_get_motor_registers(interbotix_xs_sdk::RegisterValues::Request &req, interbotix_xs_sdk::RegisterValues::Response &res);
+  bool robot_srv_get_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res);
 
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
   /// @param e - TimerEvent message [unused]
