@@ -786,7 +786,7 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
 /// @brief ROS Subscriber callback function to command a group of joints
 /// @param msg - JointGroupCommand message dictating the joint group to command along with the actual commands
 /// @details - refer to the message definition for details
-void InterbotixRobotXS::robot_sub_command_group(const interbotix_xs_sdk::JointGroupCommand &msg)
+void InterbotixRobotXS::robot_sub_command_group(const interbotix_xs_msgs::JointGroupCommand &msg)
 {
   robot_write_commands(msg.name, msg.cmd);
 }
@@ -794,7 +794,7 @@ void InterbotixRobotXS::robot_sub_command_group(const interbotix_xs_sdk::JointGr
 /// @brief ROS Subscriber callback function to command a single joint
 /// @param msg - JointSingleCommand message dictating the joint to command along with the actual command
 /// @details - refer to the message definition for details
-void InterbotixRobotXS::robot_sub_command_single(const interbotix_xs_sdk::JointSingleCommand &msg)
+void InterbotixRobotXS::robot_sub_command_single(const interbotix_xs_msgs::JointSingleCommand &msg)
 {
   robot_write_joint_command(msg.name, msg.cmd);
 }
@@ -802,7 +802,7 @@ void InterbotixRobotXS::robot_sub_command_single(const interbotix_xs_sdk::JointS
 /// @brief ROS Subscriber callback function to command a joint trajectory
 /// @param msg - JointTrajectoryCommand message dictating the joint(s) to command along with the desired trajectory
 /// @details - refer to the message definition for details
-void InterbotixRobotXS::robot_sub_command_traj(const interbotix_xs_sdk::JointTrajectoryCommand &msg)
+void InterbotixRobotXS::robot_sub_command_traj(const interbotix_xs_msgs::JointTrajectoryCommand &msg)
 {
   if (execute_joint_traj)
   {
@@ -844,7 +844,7 @@ void InterbotixRobotXS::robot_sub_command_traj(const interbotix_xs_sdk::JointTra
 /// @param req - TorqueEnable service message request
 /// @param res [out] - TorqueEnable service message response [unused]
 /// @details - refer to the service definition for details
-bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_sdk::TorqueEnable::Request &req, interbotix_xs_sdk::TorqueEnable::Response &res)
+bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable::Request &req, interbotix_xs_msgs::TorqueEnable::Response &res)
 {
   robot_torque_enable(req.cmd_type, req.name, req.enable);
   return true;
@@ -854,7 +854,7 @@ bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_sdk::TorqueEnable:
 /// @param req - Reboot service message request
 /// @param res [out] - Reboot service message response [unused]
 /// @details - refer to the service definition for details
-bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_sdk::Reboot::Request &req, interbotix_xs_sdk::Reboot::Response &res)
+bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Request &req, interbotix_xs_msgs::Reboot::Response &res)
 {
   robot_reboot_motors(req.cmd_type, req.name, req.enable, req.smart_reboot);
   return true;
@@ -864,7 +864,7 @@ bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_sdk::Reboot::Reque
 /// @param req - RobotInfo service message request
 /// @param res [out] - RobotInfo service message response
 /// @details - refer to the service definition for details
-bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_sdk::RobotInfo::Request &req, interbotix_xs_sdk::RobotInfo::Response &res)
+bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::Request &req, interbotix_xs_msgs::RobotInfo::Response &res)
 {
   bool urdf_exists = false;
   urdf::Model model;
@@ -917,7 +917,7 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_sdk::RobotInfo::R
 /// @param req - OperatingModes service message request
 /// @param res [out] - OperatingModes service message response [unused]
 /// @details - refer to the service definition for details
-bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_sdk::OperatingModes::Request &req, interbotix_xs_sdk::OperatingModes::Response &res)
+bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_msgs::OperatingModes::Request &req, interbotix_xs_msgs::OperatingModes::Response &res)
 {
   robot_set_operating_modes(req.cmd_type, req.name, req.mode, req.profile_type, req.profile_velocity, req.profile_acceleration);
   return true;
@@ -927,7 +927,7 @@ bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_sdk::Operati
 /// @param req - MotorGains service message request
 /// @param res [out] - MotorGains service message response [unused]
 /// @details - refer to the service defintion for details
-bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_sdk::MotorGains::Request &req, interbotix_xs_sdk::MotorGains::Response &res)
+bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorGains::Request &req, interbotix_xs_msgs::MotorGains::Response &res)
 {
   std::vector<int32_t> gains = {req.kp_pos, req.ki_pos, req.kd_pos, req.k1, req.k2, req.kp_vel, req.ki_vel};
   robot_set_motor_pid_gains(req.cmd_type, req.name, gains);
@@ -938,7 +938,7 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_sdk::MotorGa
 /// @param req - RegisterValues service message request
 /// @param res [out] - RegisterValues service message response [unused]
 /// @details - refer to the service definition for details
-bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_sdk::RegisterValues::Request &req, interbotix_xs_sdk::RegisterValues::Response &res)
+bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res)
 {
   robot_set_motor_registers(req.cmd_type, req.name, req.reg, req.value);
   return true;
@@ -948,7 +948,7 @@ bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_sdk::Registe
 /// @param req - RegisterValues service message request
 /// @param res [out] - RegisterValues service message response
 /// @details - refer to the service definition for details
-bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_sdk::RegisterValues::Request &req, interbotix_xs_sdk::RegisterValues::Response &res)
+bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res)
 {
   robot_get_motor_registers(req.cmd_type, req.name, req.reg, res.values);
   return true;

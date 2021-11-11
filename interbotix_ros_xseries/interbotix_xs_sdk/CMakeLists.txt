@@ -8,14 +8,13 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
+  interbotix_xs_msgs
   actionlib
   control_msgs
   dynamixel_workbench_toolbox
   message_generation
   roscpp
   sensor_msgs
-  std_msgs
-  trajectory_msgs
   urdf
 )
 
@@ -40,36 +39,6 @@ if(NOT ${YAML_CPP_VERSION} VERSION_LESS "0.5")
 add_definitions(-DHAVE_NEW_YAMLCPP)
 endif(NOT ${YAML_CPP_VERSION} VERSION_LESS "0.5")
 
-################################################
-## Declare ROS messages, services and actions ##
-################################################
-
-## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
-  JointGroupCommand.msg
-  JointSingleCommand.msg
-  JointTrajectoryCommand.msg
-)
-
-## Generate services in the 'srv' folder
-add_service_files(
-  FILES
-  Reboot.srv
-  RobotInfo.srv
-  MotorGains.srv
-  TorqueEnable.srv
-  OperatingModes.srv
-  RegisterValues.srv
-)
-
-## Generate added messages and services with any dependencies listed here
-generate_messages(
- DEPENDENCIES
- std_msgs
- trajectory_msgs
-)
-
 ###################################
 ## catkin specific configuration ##
 ###################################
@@ -79,7 +48,7 @@ generate_messages(
 catkin_package(
   INCLUDE_DIRS include
   LIBRARIES ${PROJECT_NAME}
-  CATKIN_DEPENDS actionlib dynamixel_workbench_toolbox message_runtime roscpp sensor_msgs std_msgs trajectory_msgs urdf
+  CATKIN_DEPENDS interbotix_xs_msgs actionlib dynamixel_workbench_toolbox message_runtime roscpp sensor_msgs urdf
 )
 
 ###########
