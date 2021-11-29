@@ -29,14 +29,9 @@ The table below provides a list and use case for each type defined in this packa
 | LocobotJoy.msg                | Maps raw 'joy' commands to more specific ones to control an Interbotix LoCoBot     | Joystick LoCoBot Control |
 | HexJoy.msg                    | Maps raw 'joy' commands to more specific ones to control an Interbotix hexapod     | Joystick Hexapod Control |
 | TurretJoy.msg                 | Maps raw 'joy' commands to more specific ones to control an Interbotix turret      | Joystick Turret Control  |
-| ClusterInfo.msg               | Message that holds information about each cluster                                  | Perception               |
-| PixelCommands.msg             | Configure NeoPixel Leds on a Raspberry Pi                                          | RPi Toolbox              |
 | MotorGains.srv                | Set PID gains                                                                      | Common                   |
 | OperatingModes.srv            | Set Operating Modes                                                                | Common                   |
 | Reboot.srv                    | Reboot motors                                                                      | Common                   |
 | RegisterValues.srv            | Set or get the register(s) value(s) from motor(s)                                  | Common                   |
 | RobotInfo.srv                 | Get robot information                                                              | Common                   |
 | TorqueEnable.srv              | Torque joints on/off                                                               | Common                   |
-| ClusterInfoArray.srv          | List of ClusterInfo messages                                                       | Perception               |
-| FilterParams.srv              | Parameters used to tune the various PCL Pointcloud filters                         | Perception               |
-| SnapPicture.srv               | Save the latest rgb picture with the specified name                                | Perception               |
