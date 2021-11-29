@@ -23,10 +23,6 @@ add_message_files(
     LocobotJoy.msg
     #xsturret_joy
     TurretJoy.msg
-    # perception_modules
-    ClusterInfo.msg
-    # rpi_modules
-    PixelCommands.msg
 )
 
 add_service_files(
@@ -37,10 +33,6 @@ add_service_files(
     TorqueEnable.srv
     OperatingModes.srv
     RegisterValues.srv
-    # perception_modules
-    ClusterInfoArray.srv
-    FilterParams.srv
-    SnapPicture.srv
 )
 
 generate_messages(
