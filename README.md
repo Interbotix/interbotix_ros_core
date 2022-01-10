@@ -1,7 +1,7 @@
 ![core_banner](images/core_banner.png)
 
 ## Overview
-![core_repo_strucutre](images/core_repo_structure.png)
+![core_repo_structure](images/core_repo_structure.png)
 Welcome to the *interbotix_ros_core* repository! This repo contains custom ROS Wrappers around the various types of actuators that we use at [Interbotix](https://www.trossenrobotics.com/). These ROS packages (one for each actuator) then provide the building blocks necessary to program our robots - no matter if they are 6-dof arms, pan-tilt mechanisms, hexapods, rovers, or a combination thereof (as the figure above should make clear).
 
 Links to the various repositories that build up from this one include:
@@ -16,8 +16,8 @@ Coming soon...
 Support-level software can be found in the [interbotix_ros_toolboxes](https://github.com/Interbotix/interbotix_ros_toolboxes) repository
 
 ### Build Status
-![build-melodic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/melodic.yaml/badge.svg)
-![build-noetic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/noetic.yaml/badge.svg)
+![build-xs-melodic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/melodic.yaml/badge.svg)
+![build-xs-noetic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/noetic.yaml/badge.svg)
 
 ## Repo Structure
 ```
