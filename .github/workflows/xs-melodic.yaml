@@ -1,12 +1,14 @@
-name: build-melodic
+name: build-xs-melodic
 
-on: # run CI on pushes and PRs to main branch
+on:
   push:
     branches:
-      main
+      - main
+      - devel
   pull_request:
     branches:
-      main
+      - main
+      - devel
 
 defaults:
   run:
