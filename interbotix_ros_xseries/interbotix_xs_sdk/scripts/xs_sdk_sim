@@ -62,7 +62,7 @@ class InterbotixRobotXS(object):
             with open(motor_configs_filepath, "r") as yamlfile:
                 motor_configs = yaml.safe_load(yamlfile)
         except IOError:
-            rospy.logerr("Motor Config File was not found.")
+            rospy.logerr("[xs_sdk] Motor Config File was not found.")
             return False
 
         try:
@@ -70,7 +70,7 @@ class InterbotixRobotXS(object):
                 mode_configs = yaml.safe_load(yamlfile)
         except IOError:
             mode_configs = {}
-            rospy.loginfo("Mode Config file was not found.")
+            rospy.loginfo("[xs_sdk] Mode Config file was not found.")
 
         joint_order = motor_configs["joint_order"]
         sleep_positions = motor_configs["sleep_positions"]
@@ -156,14 +156,14 @@ class InterbotixRobotXS(object):
                 self.robot_set_joint_operating_mode(joint_name, mode, profile_type, profile_velocity, profile_acceleration)
             self.group_map[name]["mode"] = mode
             self.group_map[name]["profile_type"] = profile_type
-            rospy.loginfo("The operating mode for the '%s' group was changed to %s." % (name, mode))
+            rospy.loginfo("[xs_sdk] The operating mode for the '%s' group was changed to %s." % (name, mode))
         elif (cmd_type == "single" and name in self.motor_map):
             self.robot_set_joint_operating_mode(name, mode, profile_type, profile_velocity, profile_acceleration)
-            rospy.loginfo("The operating mode for the '%s' joint was changed to %s." % (name, mode))
+            rospy.loginfo("[xs_sdk] The operating mode for the '%s' joint was changed to %s." % (name, mode))
         elif ((cmd_type == "group" and name not in self.group_map) or (cmd_type == "single" and name not in self.motor_map)):
-            rospy.loginfo("The '%s' joint/group does not exist. Was it added to the motor config file?" % name)
+            rospy.loginfo("[xs_sdk] The '%s' joint/group does not exist. Was it added to the motor config file?" % name)
         else:
-            rospy.logerr("Invalid command for argument 'cmd_type' while setting operating mode.")
+            rospy.logerr("[xs_sdk] Invalid command for argument 'cmd_type' while setting operating mode.")
 
     ### @brief Helper function used to set the operating mode for a single motor
     ### @param name - desired motor name
@@ -244,10 +244,10 @@ class InterbotixRobotXS(object):
 
         # check to make sure there is no trajectory currently running and that it is valid
         if self.execute_joint_traj:
-            rospy.loginfo("Trajectory rejected since joints are still moving.")
+            rospy.loginfo("[xs_sdk] Trajectory rejected since joints are still moving.")
             return
         if len(msg.traj.points) < 2:
-            rospy.loginfo("Trajectory has fewer than 2 points. Aborting...")
+            rospy.loginfo("[xs_sdk] Trajectory has fewer than 2 points. Aborting...")
             return
 
         # get the mode and joint_names
@@ -266,8 +266,8 @@ class InterbotixRobotXS(object):
                 expected_state = msg.traj.points[0].positions[x]
                 actual_state = self.joint_states.position[self.js_index_map[joint_names[x]]]
                 if not (abs(expected_state - actual_state) < 0.01):
-                    rospy.loginfo("The %s joint is not at the correct initial state." % joint_names[x])
-                    rospy.loginfo("Expected state: %.2f, Actual State: %.2f." % (expected_state, actual_state))
+                    rospy.loginfo("[xs_sdk] The %s joint is not at the correct initial state." % joint_names[x])
+                    rospy.loginfo("[xs_sdk] Expected state: %.2f, Actual State: %.2f." % (expected_state, actual_state))
 
         # execute the trajectory
         self.exectue_joint_traj = True
@@ -301,11 +301,11 @@ class InterbotixRobotXS(object):
     ### @details - refer to the service definition for details
     def robot_srv_torque_enable(self, req):
         if (req.cmd_type == "group"):
-            if (req.enable): rospy.loginfo("The '%s' group was torqued on." % req.name)
-            else: rospy.loginfo("The '%s' group was torqued off." % req.name)
+            if (req.enable): rospy.loginfo("[xs_sdk] The '%s' group was torqued on." % req.name)
+            else: rospy.loginfo("[xs_sdk] The '%s' group was torqued off." % req.name)
         else:
-            if (req.enable): rospy.loginfo("The '%s' joint was torqued on." % req.name)
-            else: rospy.loginfo("The '%s' joint was torqued off." % req.name)
+            if (req.enable): rospy.loginfo("[xs_sdk] The '%s' joint was torqued on." % req.name)
+            else: rospy.loginfo("[xs_sdk] The '%s' joint was torqued off." % req.name)
         return TorqueEnableResponse()
 
     ### @brief ROS Service to 'simulate' rebooting the motors on the robot (doesn't actually do anything)
@@ -314,9 +314,9 @@ class InterbotixRobotXS(object):
     ### @details - refer to the service definition for details
     def robot_srv_reboot_motors(self, req):
         if (req.cmd_type == "group"):
-            rospy.loginfo("The '%s' group was rebooted." % req.name)
+            rospy.loginfo("[xs_sdk] The '%s' group was rebooted." % req.name)
         else:
-            rospy.loginfo("The '%s' joint was rebooted." % req.name)
+            rospy.loginfo("[xs_sdk] The '%s' joint was rebooted." % req.name)
         return RebootResponse()
 
     ### @brief ROS Service that allows the user to get information about the robot

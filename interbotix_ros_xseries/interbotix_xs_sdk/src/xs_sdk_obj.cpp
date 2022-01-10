@@ -20,7 +20,7 @@ InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success
   if (!robot_ping_motors())
   {
     success = false;
-    ROS_ERROR("[xs_sdk] Could not find all motors. Shutting down...");
+    ROS_ERROR("[xs_sdk] Failed to find all motors. Shutting down...");
     return;
   }
 
@@ -82,40 +82,65 @@ void InterbotixRobotXS::robot_set_operating_modes(std::string const& cmd_type, s
 void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, std::string const& mode, std::string const& profile_type, int32_t profile_velocity, int32_t profile_acceleration)
 {
   for (auto const& joint_name:sister_map[name])
+  {
     dxl_wb.torque(motor_map[joint_name].motor_id, false);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, torqued off.", motor_map[joint_name].motor_id);
+  }
 
   for (auto const& motor_name:shadow_map[name])
   {
     int32_t drive_mode;
     dxl_wb.itemRead(motor_map[motor_name].motor_id, "Drive_Mode", &drive_mode);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, read Drive Mode %n.",motor_map[motor_name].motor_id, &drive_mode);
+    
     if (drive_mode <= 1 && profile_type == "time")
+    {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode + 4);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, write Drive Mode %d.", motor_map[motor_name].motor_id, drive_mode + 4);
+    }
     else if (drive_mode >= 4 && profile_type == "velocity")
+    {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode - 4);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, write Drive Mode %d.", motor_map[motor_name].motor_id, drive_mode - 4);
+    }
 
     if (mode == "position" || mode == "linear_position")
     {
       dxl_wb.setPositionControlMode(motor_map[motor_name].motor_id);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Velocity", profile_velocity);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set poscontrolmode, pv=%i, pa=%i.", motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
     }
     else if (mode == "ext_position")
     {
       dxl_wb.setExtendedPositionControlMode(motor_map[motor_name].motor_id);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Velocity", profile_velocity);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set extposcontrolmode, pv=%i, pa=%i.", motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
+
     }
     else if (mode == "velocity")
     {
       dxl_wb.setVelocityControlMode(motor_map[motor_name].motor_id);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set velcontrolmode, pa=%i.", motor_map[motor_name].motor_id, profile_acceleration);
     }
     else if (mode == "pwm")
+    {
       dxl_wb.setPWMControlMode(motor_map[motor_name].motor_id);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set pwmcontrolmode.", motor_map[motor_name].motor_id);
+    }
+
     else if (mode == "current")
+    {
       dxl_wb.setCurrentControlMode(motor_map[motor_name].motor_id);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set currentcontrolmode", motor_map[motor_name].motor_id);
+    }
     else if (mode == "current_based_position")
+    {
       dxl_wb.setCurrentBasedPositionControlMode(motor_map[motor_name].motor_id);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set currentcontrolmode", motor_map[motor_name].motor_id);
+    }
     else
     {
       ROS_ERROR("[xs_sdk] Invalid command for argument 'mode' while setting the operating mode for the %s motor.", motor_name.c_str());
@@ -126,7 +151,11 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
   }
 
   for (auto const& joint_name:sister_map[name])
+  {
     dxl_wb.torque(motor_map[joint_name].motor_id, true);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, torqued on", motor_map[joint_name].motor_id);
+  }
+
 }
 
 /// @brief Torque On/Off a specific group of motors or a single motor
@@ -215,25 +244,35 @@ void InterbotixRobotXS::robot_write_commands(std::string const& name, std::vecto
       if (mode == "linear_position")
         commands.at(i) = robot_convert_linear_position_to_radian(group_map[name].joint_names.at(i), commands.at(i));
       dynamixel_commands[i] = dxl_wb.convertRadian2Value(group_map[name].joint_ids.at(i), commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
     }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_POSITION, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else if (mode == "velocity")
   {
     for (size_t i{0}; i < commands.size(); i++)
+    {
       dynamixel_commands[i] = dxl_wb.convertVelocity2Value(group_map[name].joint_ids.at(i), commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
+    }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_VELOCITY, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else if (mode == "current")
   {
     for (size_t i{0}; i < commands.size(); i++)
+    {
       dynamixel_commands[i] = dxl_wb.convertCurrent2Value(commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
+    }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else if (mode == "pwm")
   {
     for (size_t i{0}; i < commands.size(); i++)
+    {
       dynamixel_commands[i] = int32_t(commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
+    }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_PWM, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else
@@ -251,14 +290,24 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const& name, float
   {
     if (mode == "linear_position")
       command = robot_convert_linear_position_to_radian(name, command);
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.goalPosition(motor_map[name].motor_id, command);
   }
   else if (mode == "velocity")
+  {
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.goalVelocity(motor_map[name].motor_id, command);
+  }
   else if (mode == "current")
+  {
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.itemWrite(motor_map[name].motor_id, "Goal_Current", dxl_wb.convertCurrent2Value(command));
+  }
   else if (mode == "pwm")
+  {
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.itemWrite(motor_map[name].motor_id, "Goal_PWM", int32_t(command));
+  }
   else
     ROS_ERROR("[xs_sdk] Invalid command for argument 'mode' while commanding joint.");
 }
@@ -278,6 +327,14 @@ void InterbotixRobotXS::robot_set_motor_pid_gains(std::string const& cmd_type, s
   for (auto const& name : names)
   {
     uint8_t id = motor_map[name].motor_id;
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains] ID: %d, writing gains:", motor_map[name].motor_id);
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Pos_P: %i", gains.at(0));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Pos_I: %i", gains.at(1));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Pos_D: %i", gains.at(2));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         FF_1: %i", gains.at(3));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         FF_2: %i", gains.at(4));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Vel_P: %i", gains.at(5));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Vel_I: %i", gains.at(6));
     dxl_wb.itemWrite(id, "Position_P_Gain", gains.at(0));
     dxl_wb.itemWrite(id, "Position_I_Gain", gains.at(1));
     dxl_wb.itemWrite(id, "Position_D_Gain", gains.at(2));
@@ -301,7 +358,10 @@ void InterbotixRobotXS::robot_set_motor_registers(std::string const& cmd_type, s
     names.push_back(name);
 
   for (auto const& name : names)
+  {
+    ROS_DEBUG("[xs_sdk::robot_set_motor_registers] ID: %d, writing reg: %s, value: %d.", motor_map[name].motor_id, reg.c_str(), value);
     dxl_wb.itemWrite(motor_map[name].motor_id, reg.c_str(), value);
+  }
 }
 
 /// @brief Get a register value from multiple motors
@@ -333,6 +393,10 @@ void InterbotixRobotXS::robot_get_motor_registers(std::string const& cmd_type, s
       ROS_ERROR("[xs_sdk] %s", log);
       return;
     }
+    else
+    {
+      ROS_DEBUG("[xs_sdk::robot_get_motor_registers] ID: %d, reading reg: %s, value: %d.", motor_map[name].motor_id, reg.c_str(), value);
+    }
     if (goal_reg->data_length == 1)
       values.push_back((uint8_t)value);
     else if (goal_reg->data_length == 2)
@@ -354,6 +418,7 @@ void InterbotixRobotXS::robot_get_joint_states(std::string const& name, std::vec
     if (positions) positions->push_back(joint_states.position.at(js_index_map[joint_name]));
     if (velocities) velocities->push_back(joint_states.velocity.at(js_index_map[joint_name]));
     if (effort) effort->push_back(joint_states.effort.at(js_index_map[joint_name]));
+    ROS_DEBUG("[xs_sdk::robot_get_joint_states] ID: %ld, got joint state.", js_index_map[joint_name]);
   }
 }
 
@@ -367,6 +432,7 @@ void InterbotixRobotXS::robot_get_joint_state(std::string const& name, float *po
   if (position) *position = joint_states.position.at(js_index_map[name]);
   if (velocity) *velocity = joint_states.velocity.at(js_index_map[name]);
   if (effort) *effort = joint_states.effort.at(js_index_map[name]);
+  ROS_DEBUG("[xs_sdk::robot_get_joint_state] ID: %ld, got joint state.", js_index_map[name]);
 }
 
 /// @brief Converts a desired linear distance between two gripper fingers into an angular position
@@ -550,7 +616,7 @@ bool InterbotixRobotXS::robot_ping_motors(void)
       success = false;
     }
     else 
-      ROS_INFO("[xs_sdk] Found Dynamixel ID : %d, Joint Name : %s, Model Number : %d", motor.second.motor_id, motor.first.c_str(), model_number);
+      ROS_INFO("[xs_sdk] Found Dynamixel ID : %d, Model Number : %d, Joint Name : %s", motor.second.motor_id, model_number, motor.first.c_str());
     dxl_wb.torque(motor.second.motor_id, false);
   }
   return success;
@@ -778,6 +844,7 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
   ros::Rate r(10);
   while (ros::ok() && joint_states.name.size() == 0)
   {
+    ROS_DEBUG("[xs_sdk::robot_wait_for_joint_states] Waiting for joint states...");
     ros::spinOnce();
     r.sleep();
   }
