@@ -91,7 +91,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
   {
     int32_t drive_mode;
     dxl_wb.itemRead(motor_map[motor_name].motor_id, "Drive_Mode", &drive_mode);
-    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, read Drive Mode %n.",motor_map[motor_name].motor_id, &drive_mode);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, read Drive Mode %d.",motor_map[motor_name].motor_id, drive_mode);
     
     if (drive_mode <= 1 && profile_type == "time")
     {
@@ -153,7 +153,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
   for (auto const& joint_name:sister_map[name])
   {
     dxl_wb.torque(motor_map[joint_name].motor_id, true);
-    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, torqued on", motor_map[joint_name].motor_id);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, torqued on.", motor_map[joint_name].motor_id);
   }
 
 }
@@ -848,6 +848,7 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
     ros::spinOnce();
     r.sleep();
   }
+  ROS_DEBUG("[xs_sdk::robot_wait_for_joint_states] Joint states found. Continuing.");
 }
 
 /// @brief ROS Subscriber callback function to command a group of joints
@@ -913,6 +914,9 @@ void InterbotixRobotXS::robot_sub_command_traj(const interbotix_xs_msgs::JointTr
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable::Request &req, interbotix_xs_msgs::TorqueEnable::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_torque_enable(req.cmd_type, req.name, req.enable);
   return true;
 }
@@ -923,6 +927,9 @@ bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Request &req, interbotix_xs_msgs::Reboot::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_reboot_motors(req.cmd_type, req.name, req.enable, req.smart_reboot);
   return true;
 }
@@ -933,6 +940,9 @@ bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Requ
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::Request &req, interbotix_xs_msgs::RobotInfo::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   bool urdf_exists = false;
   urdf::Model model;
   urdf::JointConstSharedPtr ptr;
@@ -986,6 +996,9 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_msgs::OperatingModes::Request &req, interbotix_xs_msgs::OperatingModes::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_set_operating_modes(req.cmd_type, req.name, req.mode, req.profile_type, req.profile_velocity, req.profile_acceleration);
   return true;
 }
@@ -996,6 +1009,9 @@ bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_msgs::Operat
 /// @details - refer to the service defintion for details
 bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorGains::Request &req, interbotix_xs_msgs::MotorGains::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   std::vector<int32_t> gains = {req.kp_pos, req.ki_pos, req.kd_pos, req.k1, req.k2, req.kp_vel, req.ki_vel};
   robot_set_motor_pid_gains(req.cmd_type, req.name, gains);
   return true;
@@ -1007,6 +1023,9 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorG
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_set_motor_registers(req.cmd_type, req.name, req.reg, req.value);
   return true;
 }
@@ -1017,6 +1036,9 @@ bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_msgs::Regist
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_get_motor_registers(req.cmd_type, req.name, req.reg, res.values);
   return true;
 }
@@ -1180,4 +1202,42 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
   joint_state_msg.header.stamp = ros::Time::now();
   joint_states = joint_state_msg;
   if (pub_states) pub_joint_states.publish(joint_state_msg);
+}
+
+/// @brief Checks service call requests for validity
+/// @param cmd_type request cmd_type field
+/// @param name request name field
+/// @returns true if the service call request is valid, false otherwise
+/// @details cmd_type must be 'single' or 'group'; name must be in the group_map or motor_map
+bool InterbotixRobotXS::robot_srv_validate(const std::string &cmd_type, std::string &name)
+{
+  if (cmd_type == "group") // if group command...
+  {
+    if (group_map.count(name) == 1) // if group name is valid, return true
+    {
+      return true;
+    }
+    else // otherwise error and return false
+    {
+      ROS_ERROR("[xs_sdk] Invalid service call. Group '%s' does not exist. Was it added to the motor config file?", name.c_str());
+      return false;
+    }
+  }
+  else if (cmd_type == "single") // if single joint command...
+  {
+    if (motor_map.count(name) == 1) // if joint name is valid, return true
+    {
+      return true;
+    }
+    else // otherwise error and return false
+    {
+      ROS_ERROR("[xs_sdk] Invalid service call. Joint '%s' does not exist. Was it added to the motor config file?", name.c_str());
+      return false;
+    }
+  }
+  else // if command type is invalid, error and return false
+  {
+    ROS_ERROR("[xs_sdk] Invalid service call. cmd_type '%s'. Choices are 'group' or 'single'.", cmd_type.c_str());
+    return false;
+  }
 }
