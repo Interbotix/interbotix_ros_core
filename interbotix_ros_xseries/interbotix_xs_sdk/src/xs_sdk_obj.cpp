@@ -387,8 +387,7 @@ void InterbotixRobotXS::robot_get_motor_registers(std::string const& cmd_type, s
   {
     int32_t value = 0;
     const char *log;
-    bool success = dxl_wb.itemRead(motor_map[name].motor_id, reg.c_str(), &value, &log);
-    if (!success)
+    if (!dxl_wb.itemRead(motor_map[name].motor_id, reg.c_str(), &value, &log))
     {
       ROS_ERROR("[xs_sdk] %s", log);
       return;
@@ -595,55 +594,57 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 /// @param <bool> [out] - True if the port was successfully opened; False otherwise
 bool InterbotixRobotXS::robot_init_port(void)
 {
-  bool result = dxl_wb.init(port.c_str(), BAUDRATE);
-  if (!result)
+  if (!dxl_wb.init(port.c_str(), BAUDRATE))
+  {
     ROS_ERROR("[xs_sdk] Failed to open port at %s. Shutting down...", port.c_str());
-  return result;
+    return false;
+  }
+  return true;
 }
 
 /// @brief Pings all motors to make sure they can be found
 /// @param <bool> [out] - True if all motors were found; False otherwise
 bool InterbotixRobotXS::robot_ping_motors(void)
 {
-  bool success = true;
   for (auto const& motor:motor_map)
   {
     uint16_t model_number = 0;
-    bool result = dxl_wb.ping(motor.second.motor_id, &model_number);
-    if (result == false)
+    if(!dxl_wb.ping(motor.second.motor_id, &model_number))
     {
-      ROS_ERROR("[xs_sdk] Can't find Dynamixel ID '%d', Joint Name : '%s'", motor.second.motor_id, motor.first.c_str());
-      success = false;
+      ROS_ERROR(
+        "[xs_sdk] Can't find Dynamixel ID '%d',\tJoint Name : '%s'", 
+        motor.second.motor_id, motor.first.c_str());
+      return false;
     }
     else 
-      ROS_INFO("[xs_sdk] Found Dynamixel ID : %d, Model Number : %d, Joint Name : %s", motor.second.motor_id, model_number, motor.first.c_str());
+      ROS_INFO(
+        "[xs_sdk] Found Dynamixel ID : %d,\tModel Number : %d,\tJoint Name : %s", 
+        motor.second.motor_id, model_number, motor.first.c_str());
     dxl_wb.torque(motor.second.motor_id, false);
   }
-  return success;
+  return true;
 }
 
 /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
 /// @param <bool> [out] - True if all register values were written successfully; False otherwise
 bool InterbotixRobotXS::robot_load_motor_configs(void)
 {
-  bool load_configs, success = true;
-  ros::param::get("~load_configs", load_configs);
-
-  if (load_configs)
+  if (ros::param::param<bool>("~load_configs", LOAD_CONFIGS, true))
   {
     for (auto const& motor_info:motor_info_vec)
     {
-      bool result = dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value);
-      if (result == false)
+      if (!dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value))
       {
-        ROS_ERROR("[xs_sdk] Failed to write value[%d] on items[%s] to [ID : %d]", motor_info.value, motor_info.reg.c_str(), motor_info.motor_id);
-        success = false;
+        ROS_ERROR(
+          "[xs_sdk] Failed to write value[%d] on items[%s] to [ID : %d]",
+          motor_info.value, motor_info.reg.c_str(), motor_info.motor_id);
+        return false;
       }
     }
   }
   else
     ROS_INFO("[xs_sdk] Skipping Load Configs...");
-  return success;
+  return true;
 }
 
 /// @brief Retrieves information about 'Goal_XXX' and 'Present_XXX' registers
@@ -653,40 +654,42 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   uint8_t motor_id = motor_map.begin()->second.motor_id;
 
   const ControlItem *goal_position = dxl_wb.getItemInfo(motor_id, "Goal_Position");
-  if (goal_position == NULL)
+  if (!goal_position)
     ROS_ERROR("[xs_sdk] Could not get 'Goal_Position' Item Info");
 
   const ControlItem *goal_velocity = dxl_wb.getItemInfo(motor_id, "Goal_Velocity");
-  if (goal_velocity == NULL)  goal_velocity = dxl_wb.getItemInfo(motor_id, "Moving_Speed");
-  if (goal_velocity == NULL)
+  if (!goal_velocity) goal_velocity = dxl_wb.getItemInfo(motor_id, "Moving_Speed");
+  if (!goal_velocity)
     ROS_ERROR("[xs_sdk] Could not get 'Goal_Velocity' or 'Moving_Speed' Item Info");
 
   const ControlItem *goal_current = NULL;
   for (auto const& motor:motor_map)
   {
     goal_current = dxl_wb.getItemInfo(motor.second.motor_id, "Goal_Current");
-    if (goal_current != NULL)
+    if (goal_current)
       break;
   }
-  if (goal_current == NULL)
-    ROS_INFO("[xs_sdk] Could not get 'Goal_Current' Item Info. This message can be ignored if none of the robot's motors support current control.");
+  if (!goal_current)
+    ROS_INFO(
+      "[xs_sdk] Could not get 'Goal_Current' Item Info. This message can be "
+      "ignored if none of the robot's motors support current control.");
 
   const ControlItem *goal_pwm = dxl_wb.getItemInfo(motor_id, "Goal_PWM");
-  if (goal_pwm == NULL)
+  if (!goal_pwm)
     ROS_ERROR("[xs_sdk] Could not get 'Goal_PWM' Item Info");
 
   const ControlItem *present_position = dxl_wb.getItemInfo(motor_id, "Present_Position");
-  if (present_position == NULL)
+  if (!present_position)
     ROS_ERROR("[xs_sdk] Could not get 'Present_Position' Item Info");
 
   const ControlItem *present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Velocity");
-  if (present_velocity == NULL)  present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Speed");
-  if (present_velocity == NULL)
+  if (!present_velocity) present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Speed");
+  if (!present_velocity)
     ROS_ERROR("[xs_sdk] Could not get 'Present_Velocity' or 'Present_Speed' Item Info");
 
   const ControlItem *present_current = dxl_wb.getItemInfo(motor_id, "Present_Current");
-  if (present_current == NULL)  present_current = dxl_wb.getItemInfo(motor_id, "Present_Load");
-  if (present_current == NULL)
+  if (!present_current) present_current = dxl_wb.getItemInfo(motor_id, "Present_Load");
+  if (!present_current)
     ROS_ERROR("[xs_sdk] Could not get 'Present_Current' or 'Present_Load' Item Info");
 
   control_items["Goal_Position"] = goal_position;
@@ -702,27 +705,22 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   /// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors simultaneously
 void InterbotixRobotXS::robot_init_SDK_handlers(void)
 {
-  bool result = false;
-  result = dxl_wb.addSyncWriteHandler(control_items["Goal_Position"]->address, control_items["Goal_Position"]->data_length);
-  if (result == false)
+  if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Position"]->address, control_items["Goal_Position"]->data_length))
     ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_Position.");
 
-  result = dxl_wb.addSyncWriteHandler(control_items["Goal_Velocity"]->address, control_items["Goal_Velocity"]->data_length);
-  if (result == false)
+  if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Velocity"]->address, control_items["Goal_Velocity"]->data_length))
     ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_Velocity.");
 
   // only add a SyncWriteHandler for 'Goal_Current' if the register actually exists!
-  if (control_items["Goal_Current"] != NULL)
+  if (control_items["Goal_Current"])
   {
-    result = dxl_wb.addSyncWriteHandler(control_items["Goal_Current"]->address, control_items["Goal_Current"]->data_length);
-    if (result == false)
+    if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Current"]->address, control_items["Goal_Current"]->data_length))
       ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_Current.");
   }
   else
     ROS_INFO("[xs_sdk] SyncWriteHandler for Goal_Current not added as it's not supported.");
 
-  result = dxl_wb.addSyncWriteHandler(control_items["Goal_PWM"]->address, control_items["Goal_PWM"]->data_length);
-  if (result == false)
+  if (!dxl_wb.addSyncWriteHandler(control_items["Goal_PWM"]->address, control_items["Goal_PWM"]->data_length))
     ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_PWM.");
 
   if (dxl_wb.getProtocolVersion() == 2.0f)
@@ -733,8 +731,7 @@ void InterbotixRobotXS::robot_init_SDK_handlers(void)
     */
     // uint16_t read_length = control_items["Present_Position"]->data_length + control_items["Present_Velocity"]->data_length + control_items["Present_Current"]->data_length;
     uint16_t read_length = control_items["Present_Position"]->data_length + control_items["Present_Velocity"]->data_length + control_items["Present_Current"]->data_length+2;
-    result = dxl_wb.addSyncReadHandler(start_address, read_length);
-    if (result == false)
+    if (!dxl_wb.addSyncReadHandler(start_address, read_length))
       ROS_ERROR("[xs_sdk] Failed to add SyncReadHandler");
   }
 }
@@ -747,8 +744,7 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
   {
     std::string master_name = master_itr->first.as<std::string>();
     YAML::Node master = all_shadows[master_name];
-    bool calibrate = master["calibrate"].as<bool>(false);
-    if (calibrate)
+    if (master["calibrate"].as<bool>(false))
     {
       int32_t master_position;
       dxl_wb.itemRead(motor_map[master_name].motor_id, "Present_Position", &master_position);
@@ -779,9 +775,8 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
     std::string profile_type = single_group["profile_type"].as<std::string>(PROFILE_TYPE);
     int32_t profile_velocity = single_group["profile_velocity"].as<int32_t>(PROFILE_VELOCITY);
     int32_t profile_acceleration = single_group["profile_acceleration"].as<int32_t>(PROFILE_ACCELERATION);
-    bool torque_enable = single_group["torque_enable"].as<bool>(TORQUE_ENABLE);
     robot_set_operating_modes("group", name, operating_mode, profile_type, profile_velocity, profile_acceleration);
-    if (!torque_enable)
+    if (!single_group["torque_enable"].as<bool>(TORQUE_ENABLE))
       robot_torque_enable("group", name, false);
   }
 
@@ -794,9 +789,8 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
     std::string profile_type = single_joint["profile_type"].as<std::string>(PROFILE_TYPE);
     int32_t profile_velocity = single_joint["profile_velocity"].as<int32_t>(PROFILE_VELOCITY);
     int32_t profile_acceleration = single_joint["profile_acceleration"].as<int32_t>(PROFILE_ACCELERATION);
-    bool torque_enable = single_joint["torque_enable"].as<bool>(TORQUE_ENABLE);
     robot_set_operating_modes("single", single_name, operating_mode, profile_type, profile_velocity, profile_acceleration);
-    if (!torque_enable)
+    if (!single_joint["torque_enable"].as<bool>(TORQUE_ENABLE))
       robot_torque_enable("single", single_name, false);
   }
 }
@@ -1109,36 +1103,50 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 
   if (dxl_wb.getProtocolVersion() == 2.0f)
   {
+    // Checks if data can be sent properly
+    if (!dxl_wb.syncRead(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                          all_ptr->joint_ids.data(),
+                          all_ptr->joint_num,
+                          &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }
 
-    result = dxl_wb.syncRead(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+    // Gets present current of all servos
+    if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
                                 all_ptr->joint_ids.data(),
                                 all_ptr->joint_num,
-                                &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
-    result = dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
-                                                  all_ptr->joint_ids.data(),
-                                                  all_ptr->joint_num,
-                                                  control_items["Present_Current"]->address,
-                                                  control_items["Present_Current"]->data_length,
-                                                  get_current.data(),
-                                                  &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
-    result = dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
-                                                  all_ptr->joint_ids.data(),
-                                                  all_ptr->joint_num,
-                                                  control_items["Present_Velocity"]->address,
-                                                  control_items["Present_Velocity"]->data_length,
-                                                  get_velocity.data(),
-                                                  &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
-    result = dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
-                                                  all_ptr->joint_ids.data(),
-                                                  all_ptr->joint_num,
-                                                  control_items["Present_Position"]->address,
-                                                  control_items["Present_Position"]->data_length,
-                                                  get_position.data(),
-                                                  &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
+                                control_items["Present_Current"]->address,
+                                control_items["Present_Current"]->data_length,
+                                get_current.data(),
+                                &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }             
+
+    // Gets present velocity of all servos
+    if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                                all_ptr->joint_ids.data(),
+                                all_ptr->joint_num,
+                                control_items["Present_Velocity"]->address,
+                                control_items["Present_Velocity"]->data_length,
+                                get_velocity.data(),
+                                &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }
+
+    // Gets present position of all servos
+    if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                                all_ptr->joint_ids.data(),
+                                all_ptr->joint_num,
+                                control_items["Present_Position"]->address,
+                                control_items["Present_Position"]->data_length,
+                                get_position.data(),
+                                &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }
 
     uint8_t index = 0;
     for (auto const& id : all_ptr->joint_ids)
@@ -1148,7 +1156,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
       float effort = 0;
 
       if (strcmp(dxl_wb.getModelName(id), "XL-320") == 0) effort = dxl_wb.convertValue2Load(get_current.at(index));
-      else  effort = dxl_wb.convertValue2Current(get_current.at(index));
+      else effort = dxl_wb.convertValue2Current(get_current.at(index));
       velocity = dxl_wb.convertValue2Velocity(id, get_velocity.at(index));
       position = dxl_wb.convertValue2Radian(id, get_position.at(index));
       joint_state_msg.effort.push_back(effort);
@@ -1166,12 +1174,15 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 
     for (auto const& id : all_ptr->joint_ids)
     {
-      result = dxl_wb.readRegister(id,
-                                   control_items["Present_Position"]->address,
-                                   length_of_data,
-                                   get_all_data.data(),
-                                   &log);
-      if (!result) ROS_ERROR("[xs_sdk] %s", log);
+      if (!dxl_wb.readRegister(id,
+                                control_items["Present_Position"]->address,
+                                length_of_data,
+                                get_all_data.data(),
+                                &log))
+      {
+        ROS_ERROR("[xs_sdk] %s", log);
+      }
+
       int16_t effort_raw = DXL_MAKEWORD(get_all_data.at(4), get_all_data.at(5));
       int32_t velocity_raw = DXL_MAKEWORD(get_all_data.at(2), get_all_data.at(3));
       int32_t position_raw = DXL_MAKEWORD(get_all_data.at(0), get_all_data.at(1));
