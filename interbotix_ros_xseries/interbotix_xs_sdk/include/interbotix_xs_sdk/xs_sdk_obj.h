@@ -32,6 +32,7 @@ static const std::string PROFILE_TYPE = "velocity";                     // Defau
 static const int32_t PROFILE_VELOCITY = 0;                              // Allow joint velocity to be infinite when in position control mode - makes robot very reactive to joint commands
 static const int32_t PROFILE_ACCELERATION = 0;                          // Allow joint acceleration to be infinite when in position control mode - makes robot very reactive to joint commands
 static const bool TORQUE_ENABLE = true;                                 // Torque motor on by default
+static bool LOAD_CONFIGS = true;                                        // Get motor configurations by default
 
 struct JointGroup                                                       // Struct to hold multiple joints that represent a group
 {
