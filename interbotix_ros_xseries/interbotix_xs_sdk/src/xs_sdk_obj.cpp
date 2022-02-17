@@ -20,7 +20,7 @@ InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success
   if (!robot_ping_motors())
   {
     success = false;
-    ROS_ERROR("[xs_sdk] Could not find all motors. Shutting down...");
+    ROS_ERROR("[xs_sdk] Failed to find all motors. Shutting down...");
     return;
   }
 
@@ -82,40 +82,65 @@ void InterbotixRobotXS::robot_set_operating_modes(std::string const& cmd_type, s
 void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, std::string const& mode, std::string const& profile_type, int32_t profile_velocity, int32_t profile_acceleration)
 {
   for (auto const& joint_name:sister_map[name])
+  {
     dxl_wb.torque(motor_map[joint_name].motor_id, false);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, torqued off.", motor_map[joint_name].motor_id);
+  }
 
   for (auto const& motor_name:shadow_map[name])
   {
     int32_t drive_mode;
     dxl_wb.itemRead(motor_map[motor_name].motor_id, "Drive_Mode", &drive_mode);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, read Drive Mode %d.",motor_map[motor_name].motor_id, drive_mode);
+    
     if (drive_mode <= 1 && profile_type == "time")
+    {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode + 4);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, write Drive Mode %d.", motor_map[motor_name].motor_id, drive_mode + 4);
+    }
     else if (drive_mode >= 4 && profile_type == "velocity")
+    {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode - 4);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, write Drive Mode %d.", motor_map[motor_name].motor_id, drive_mode - 4);
+    }
 
     if (mode == "position" || mode == "linear_position")
     {
       dxl_wb.setPositionControlMode(motor_map[motor_name].motor_id);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Velocity", profile_velocity);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set poscontrolmode, pv=%i, pa=%i.", motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
     }
     else if (mode == "ext_position")
     {
       dxl_wb.setExtendedPositionControlMode(motor_map[motor_name].motor_id);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Velocity", profile_velocity);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set extposcontrolmode, pv=%i, pa=%i.", motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
+
     }
     else if (mode == "velocity")
     {
       dxl_wb.setVelocityControlMode(motor_map[motor_name].motor_id);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set velcontrolmode, pa=%i.", motor_map[motor_name].motor_id, profile_acceleration);
     }
     else if (mode == "pwm")
+    {
       dxl_wb.setPWMControlMode(motor_map[motor_name].motor_id);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set pwmcontrolmode.", motor_map[motor_name].motor_id);
+    }
+
     else if (mode == "current")
+    {
       dxl_wb.setCurrentControlMode(motor_map[motor_name].motor_id);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set currentcontrolmode", motor_map[motor_name].motor_id);
+    }
     else if (mode == "current_based_position")
+    {
       dxl_wb.setCurrentBasedPositionControlMode(motor_map[motor_name].motor_id);
+      ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, set currentcontrolmode", motor_map[motor_name].motor_id);
+    }
     else
     {
       ROS_ERROR("[xs_sdk] Invalid command for argument 'mode' while setting the operating mode for the %s motor.", motor_name.c_str());
@@ -126,7 +151,11 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
   }
 
   for (auto const& joint_name:sister_map[name])
+  {
     dxl_wb.torque(motor_map[joint_name].motor_id, true);
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, torqued on.", motor_map[joint_name].motor_id);
+  }
+
 }
 
 /// @brief Torque On/Off a specific group of motors or a single motor
@@ -215,25 +244,35 @@ void InterbotixRobotXS::robot_write_commands(std::string const& name, std::vecto
       if (mode == "linear_position")
         commands.at(i) = robot_convert_linear_position_to_radian(group_map[name].joint_names.at(i), commands.at(i));
       dynamixel_commands[i] = dxl_wb.convertRadian2Value(group_map[name].joint_ids.at(i), commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
     }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_POSITION, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else if (mode == "velocity")
   {
     for (size_t i{0}; i < commands.size(); i++)
+    {
       dynamixel_commands[i] = dxl_wb.convertVelocity2Value(group_map[name].joint_ids.at(i), commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
+    }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_VELOCITY, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else if (mode == "current")
   {
     for (size_t i{0}; i < commands.size(); i++)
+    {
       dynamixel_commands[i] = dxl_wb.convertCurrent2Value(commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
+    }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else if (mode == "pwm")
   {
     for (size_t i{0}; i < commands.size(); i++)
+    {
       dynamixel_commands[i] = int32_t(commands.at(i));
+      ROS_DEBUG("[xs_sdk::robot_write_commands] ID: %d, writing %s command %d.", group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
+    }
     dxl_wb.syncWrite(SYNC_WRITE_HANDLER_FOR_GOAL_PWM, group_map[name].joint_ids.data(), group_map[name].joint_num, dynamixel_commands, 1);
   }
   else
@@ -251,14 +290,24 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const& name, float
   {
     if (mode == "linear_position")
       command = robot_convert_linear_position_to_radian(name, command);
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.goalPosition(motor_map[name].motor_id, command);
   }
   else if (mode == "velocity")
+  {
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.goalVelocity(motor_map[name].motor_id, command);
+  }
   else if (mode == "current")
+  {
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.itemWrite(motor_map[name].motor_id, "Goal_Current", dxl_wb.convertCurrent2Value(command));
+  }
   else if (mode == "pwm")
+  {
+    ROS_DEBUG("[xs_sdk::robot_write_joint_command] ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     dxl_wb.itemWrite(motor_map[name].motor_id, "Goal_PWM", int32_t(command));
+  }
   else
     ROS_ERROR("[xs_sdk] Invalid command for argument 'mode' while commanding joint.");
 }
@@ -278,6 +327,14 @@ void InterbotixRobotXS::robot_set_motor_pid_gains(std::string const& cmd_type, s
   for (auto const& name : names)
   {
     uint8_t id = motor_map[name].motor_id;
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains] ID: %d, writing gains:", motor_map[name].motor_id);
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Pos_P: %i", gains.at(0));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Pos_I: %i", gains.at(1));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Pos_D: %i", gains.at(2));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         FF_1: %i", gains.at(3));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         FF_2: %i", gains.at(4));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Vel_P: %i", gains.at(5));
+    ROS_DEBUG("[xs_sdk::robot_set_motor_pid_gains]         Vel_I: %i", gains.at(6));
     dxl_wb.itemWrite(id, "Position_P_Gain", gains.at(0));
     dxl_wb.itemWrite(id, "Position_I_Gain", gains.at(1));
     dxl_wb.itemWrite(id, "Position_D_Gain", gains.at(2));
@@ -301,7 +358,10 @@ void InterbotixRobotXS::robot_set_motor_registers(std::string const& cmd_type, s
     names.push_back(name);
 
   for (auto const& name : names)
+  {
+    ROS_DEBUG("[xs_sdk::robot_set_motor_registers] ID: %d, writing reg: %s, value: %d.", motor_map[name].motor_id, reg.c_str(), value);
     dxl_wb.itemWrite(motor_map[name].motor_id, reg.c_str(), value);
+  }
 }
 
 /// @brief Get a register value from multiple motors
@@ -327,11 +387,14 @@ void InterbotixRobotXS::robot_get_motor_registers(std::string const& cmd_type, s
   {
     int32_t value = 0;
     const char *log;
-    bool success = dxl_wb.itemRead(motor_map[name].motor_id, reg.c_str(), &value, &log);
-    if (!success)
+    if (!dxl_wb.itemRead(motor_map[name].motor_id, reg.c_str(), &value, &log))
     {
       ROS_ERROR("[xs_sdk] %s", log);
       return;
+    }
+    else
+    {
+      ROS_DEBUG("[xs_sdk::robot_get_motor_registers] ID: %d, reading reg: %s, value: %d.", motor_map[name].motor_id, reg.c_str(), value);
     }
     if (goal_reg->data_length == 1)
       values.push_back((uint8_t)value);
@@ -354,6 +417,7 @@ void InterbotixRobotXS::robot_get_joint_states(std::string const& name, std::vec
     if (positions) positions->push_back(joint_states.position.at(js_index_map[joint_name]));
     if (velocities) velocities->push_back(joint_states.velocity.at(js_index_map[joint_name]));
     if (effort) effort->push_back(joint_states.effort.at(js_index_map[joint_name]));
+    ROS_DEBUG("[xs_sdk::robot_get_joint_states] ID: %ld, got joint state.", js_index_map[joint_name]);
   }
 }
 
@@ -367,6 +431,7 @@ void InterbotixRobotXS::robot_get_joint_state(std::string const& name, float *po
   if (position) *position = joint_states.position.at(js_index_map[name]);
   if (velocity) *velocity = joint_states.velocity.at(js_index_map[name]);
   if (effort) *effort = joint_states.effort.at(js_index_map[name]);
+  ROS_DEBUG("[xs_sdk::robot_get_joint_state] ID: %ld, got joint state.", js_index_map[name]);
 }
 
 /// @brief Converts a desired linear distance between two gripper fingers into an angular position
@@ -402,7 +467,16 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 {
   std::string motor_configs_file, mode_configs_file;
   ros::param::get("~motor_configs", motor_configs_file);
-  motor_configs = YAML::LoadFile(motor_configs_file.c_str());
+  try
+  {
+    motor_configs = YAML::LoadFile(motor_configs_file.c_str());
+  }
+  catch (YAML::BadFile &error)
+  {
+    ROS_ERROR("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_ERROR("[xs_sdk] YAML Error: '%s'", error.what());
+    return false;
+  }
   if (motor_configs.IsNull())
   {
     ROS_ERROR("[xs_sdk] Motor Config file was not found. Shutting down...");
@@ -410,7 +484,16 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
 
   ros::param::get("~mode_configs", mode_configs_file);
-  mode_configs = YAML::LoadFile(mode_configs_file.c_str());
+  try
+  {
+    mode_configs = YAML::LoadFile(mode_configs_file.c_str());
+  }
+  catch (YAML::BadFile &error)
+  {
+    ROS_ERROR("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_ERROR("[xs_sdk] YAML Error: '%s'", error.what());
+    return false;
+  }
   if (mode_configs.IsNull())
     ROS_INFO("[xs_sdk] Mode Config file is empty.");
 
@@ -529,55 +612,57 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 /// @param <bool> [out] - True if the port was successfully opened; False otherwise
 bool InterbotixRobotXS::robot_init_port(void)
 {
-  bool result = dxl_wb.init(port.c_str(), BAUDRATE);
-  if (!result)
+  if (!dxl_wb.init(port.c_str(), BAUDRATE))
+  {
     ROS_ERROR("[xs_sdk] Failed to open port at %s. Shutting down...", port.c_str());
-  return result;
+    return false;
+  }
+  return true;
 }
 
 /// @brief Pings all motors to make sure they can be found
 /// @param <bool> [out] - True if all motors were found; False otherwise
 bool InterbotixRobotXS::robot_ping_motors(void)
 {
-  bool success = true;
   for (auto const& motor:motor_map)
   {
     uint16_t model_number = 0;
-    bool result = dxl_wb.ping(motor.second.motor_id, &model_number);
-    if (result == false)
+    if(!dxl_wb.ping(motor.second.motor_id, &model_number))
     {
-      ROS_ERROR("[xs_sdk] Can't find Dynamixel ID '%d', Joint Name : '%s'", motor.second.motor_id, motor.first.c_str());
-      success = false;
+      ROS_ERROR(
+        "[xs_sdk] Can't find Dynamixel ID '%d',\tJoint Name : '%s'", 
+        motor.second.motor_id, motor.first.c_str());
+      return false;
     }
     else 
-      ROS_INFO("[xs_sdk] Found Dynamixel ID : %d, Joint Name : %s, Model Number : %d", motor.second.motor_id, motor.first.c_str(), model_number);
+      ROS_INFO(
+        "[xs_sdk] Found Dynamixel ID : %d,\tModel Number : %d,\tJoint Name : %s", 
+        motor.second.motor_id, model_number, motor.first.c_str());
     dxl_wb.torque(motor.second.motor_id, false);
   }
-  return success;
+  return true;
 }
 
 /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
 /// @param <bool> [out] - True if all register values were written successfully; False otherwise
 bool InterbotixRobotXS::robot_load_motor_configs(void)
 {
-  bool load_configs, success = true;
-  ros::param::get("~load_configs", load_configs);
-
-  if (load_configs)
+  if (ros::param::param<bool>("~load_configs", LOAD_CONFIGS, true))
   {
     for (auto const& motor_info:motor_info_vec)
     {
-      bool result = dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value);
-      if (result == false)
+      if (!dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value))
       {
-        ROS_ERROR("[xs_sdk] Failed to write value[%d] on items[%s] to [ID : %d]", motor_info.value, motor_info.reg.c_str(), motor_info.motor_id);
-        success = false;
+        ROS_ERROR(
+          "[xs_sdk] Failed to write value[%d] on items[%s] to [ID : %d]",
+          motor_info.value, motor_info.reg.c_str(), motor_info.motor_id);
+        return false;
       }
     }
   }
   else
     ROS_INFO("[xs_sdk] Skipping Load Configs...");
-  return success;
+  return true;
 }
 
 /// @brief Retrieves information about 'Goal_XXX' and 'Present_XXX' registers
@@ -587,40 +672,42 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   uint8_t motor_id = motor_map.begin()->second.motor_id;
 
   const ControlItem *goal_position = dxl_wb.getItemInfo(motor_id, "Goal_Position");
-  if (goal_position == NULL)
+  if (!goal_position)
     ROS_ERROR("[xs_sdk] Could not get 'Goal_Position' Item Info");
 
   const ControlItem *goal_velocity = dxl_wb.getItemInfo(motor_id, "Goal_Velocity");
-  if (goal_velocity == NULL)  goal_velocity = dxl_wb.getItemInfo(motor_id, "Moving_Speed");
-  if (goal_velocity == NULL)
+  if (!goal_velocity) goal_velocity = dxl_wb.getItemInfo(motor_id, "Moving_Speed");
+  if (!goal_velocity)
     ROS_ERROR("[xs_sdk] Could not get 'Goal_Velocity' or 'Moving_Speed' Item Info");
 
   const ControlItem *goal_current = NULL;
   for (auto const& motor:motor_map)
   {
     goal_current = dxl_wb.getItemInfo(motor.second.motor_id, "Goal_Current");
-    if (goal_current != NULL)
+    if (goal_current)
       break;
   }
-  if (goal_current == NULL)
-    ROS_INFO("[xs_sdk] Could not get 'Goal_Current' Item Info. This message can be ignored if none of the robot's motors support current control.");
+  if (!goal_current)
+    ROS_INFO(
+      "[xs_sdk] Could not get 'Goal_Current' Item Info. This message can be "
+      "ignored if none of the robot's motors support current control.");
 
   const ControlItem *goal_pwm = dxl_wb.getItemInfo(motor_id, "Goal_PWM");
-  if (goal_pwm == NULL)
+  if (!goal_pwm)
     ROS_ERROR("[xs_sdk] Could not get 'Goal_PWM' Item Info");
 
   const ControlItem *present_position = dxl_wb.getItemInfo(motor_id, "Present_Position");
-  if (present_position == NULL)
+  if (!present_position)
     ROS_ERROR("[xs_sdk] Could not get 'Present_Position' Item Info");
 
   const ControlItem *present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Velocity");
-  if (present_velocity == NULL)  present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Speed");
-  if (present_velocity == NULL)
+  if (!present_velocity) present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Speed");
+  if (!present_velocity)
     ROS_ERROR("[xs_sdk] Could not get 'Present_Velocity' or 'Present_Speed' Item Info");
 
   const ControlItem *present_current = dxl_wb.getItemInfo(motor_id, "Present_Current");
-  if (present_current == NULL)  present_current = dxl_wb.getItemInfo(motor_id, "Present_Load");
-  if (present_current == NULL)
+  if (!present_current) present_current = dxl_wb.getItemInfo(motor_id, "Present_Load");
+  if (!present_current)
     ROS_ERROR("[xs_sdk] Could not get 'Present_Current' or 'Present_Load' Item Info");
 
   control_items["Goal_Position"] = goal_position;
@@ -636,27 +723,22 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   /// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors simultaneously
 void InterbotixRobotXS::robot_init_SDK_handlers(void)
 {
-  bool result = false;
-  result = dxl_wb.addSyncWriteHandler(control_items["Goal_Position"]->address, control_items["Goal_Position"]->data_length);
-  if (result == false)
+  if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Position"]->address, control_items["Goal_Position"]->data_length))
     ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_Position.");
 
-  result = dxl_wb.addSyncWriteHandler(control_items["Goal_Velocity"]->address, control_items["Goal_Velocity"]->data_length);
-  if (result == false)
+  if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Velocity"]->address, control_items["Goal_Velocity"]->data_length))
     ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_Velocity.");
 
   // only add a SyncWriteHandler for 'Goal_Current' if the register actually exists!
-  if (control_items["Goal_Current"] != NULL)
+  if (control_items["Goal_Current"])
   {
-    result = dxl_wb.addSyncWriteHandler(control_items["Goal_Current"]->address, control_items["Goal_Current"]->data_length);
-    if (result == false)
+    if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Current"]->address, control_items["Goal_Current"]->data_length))
       ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_Current.");
   }
   else
     ROS_INFO("[xs_sdk] SyncWriteHandler for Goal_Current not added as it's not supported.");
 
-  result = dxl_wb.addSyncWriteHandler(control_items["Goal_PWM"]->address, control_items["Goal_PWM"]->data_length);
-  if (result == false)
+  if (!dxl_wb.addSyncWriteHandler(control_items["Goal_PWM"]->address, control_items["Goal_PWM"]->data_length))
     ROS_ERROR("[xs_sdk] Failed to add SyncWriteHandler for Goal_PWM.");
 
   if (dxl_wb.getProtocolVersion() == 2.0f)
@@ -667,8 +749,7 @@ void InterbotixRobotXS::robot_init_SDK_handlers(void)
     */
     // uint16_t read_length = control_items["Present_Position"]->data_length + control_items["Present_Velocity"]->data_length + control_items["Present_Current"]->data_length;
     uint16_t read_length = control_items["Present_Position"]->data_length + control_items["Present_Velocity"]->data_length + control_items["Present_Current"]->data_length+2;
-    result = dxl_wb.addSyncReadHandler(start_address, read_length);
-    if (result == false)
+    if (!dxl_wb.addSyncReadHandler(start_address, read_length))
       ROS_ERROR("[xs_sdk] Failed to add SyncReadHandler");
   }
 }
@@ -681,8 +762,7 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
   {
     std::string master_name = master_itr->first.as<std::string>();
     YAML::Node master = all_shadows[master_name];
-    bool calibrate = master["calibrate"].as<bool>(false);
-    if (calibrate)
+    if (master["calibrate"].as<bool>(false))
     {
       int32_t master_position;
       dxl_wb.itemRead(motor_map[master_name].motor_id, "Present_Position", &master_position);
@@ -713,9 +793,8 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
     std::string profile_type = single_group["profile_type"].as<std::string>(PROFILE_TYPE);
     int32_t profile_velocity = single_group["profile_velocity"].as<int32_t>(PROFILE_VELOCITY);
     int32_t profile_acceleration = single_group["profile_acceleration"].as<int32_t>(PROFILE_ACCELERATION);
-    bool torque_enable = single_group["torque_enable"].as<bool>(TORQUE_ENABLE);
     robot_set_operating_modes("group", name, operating_mode, profile_type, profile_velocity, profile_acceleration);
-    if (!torque_enable)
+    if (!single_group["torque_enable"].as<bool>(TORQUE_ENABLE))
       robot_torque_enable("group", name, false);
   }
 
@@ -728,9 +807,8 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
     std::string profile_type = single_joint["profile_type"].as<std::string>(PROFILE_TYPE);
     int32_t profile_velocity = single_joint["profile_velocity"].as<int32_t>(PROFILE_VELOCITY);
     int32_t profile_acceleration = single_joint["profile_acceleration"].as<int32_t>(PROFILE_ACCELERATION);
-    bool torque_enable = single_joint["torque_enable"].as<bool>(TORQUE_ENABLE);
     robot_set_operating_modes("single", single_name, operating_mode, profile_type, profile_velocity, profile_acceleration);
-    if (!torque_enable)
+    if (!single_joint["torque_enable"].as<bool>(TORQUE_ENABLE))
       robot_torque_enable("single", single_name, false);
   }
 }
@@ -778,9 +856,11 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
   ros::Rate r(10);
   while (ros::ok() && joint_states.name.size() == 0)
   {
+    ROS_DEBUG("[xs_sdk::robot_wait_for_joint_states] Waiting for joint states...");
     ros::spinOnce();
     r.sleep();
   }
+  ROS_DEBUG("[xs_sdk::robot_wait_for_joint_states] Joint states found. Continuing.");
 }
 
 /// @brief ROS Subscriber callback function to command a group of joints
@@ -846,6 +926,9 @@ void InterbotixRobotXS::robot_sub_command_traj(const interbotix_xs_msgs::JointTr
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable::Request &req, interbotix_xs_msgs::TorqueEnable::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_torque_enable(req.cmd_type, req.name, req.enable);
   return true;
 }
@@ -856,6 +939,9 @@ bool InterbotixRobotXS::robot_srv_torque_enable(interbotix_xs_msgs::TorqueEnable
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Request &req, interbotix_xs_msgs::Reboot::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_reboot_motors(req.cmd_type, req.name, req.enable, req.smart_reboot);
   return true;
 }
@@ -866,6 +952,9 @@ bool InterbotixRobotXS::robot_srv_reboot_motors(interbotix_xs_msgs::Reboot::Requ
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::Request &req, interbotix_xs_msgs::RobotInfo::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   bool urdf_exists = false;
   urdf::Model model;
   urdf::JointConstSharedPtr ptr;
@@ -919,6 +1008,9 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_msgs::OperatingModes::Request &req, interbotix_xs_msgs::OperatingModes::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_set_operating_modes(req.cmd_type, req.name, req.mode, req.profile_type, req.profile_velocity, req.profile_acceleration);
   return true;
 }
@@ -929,6 +1021,9 @@ bool InterbotixRobotXS::robot_srv_set_operating_modes(interbotix_xs_msgs::Operat
 /// @details - refer to the service defintion for details
 bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorGains::Request &req, interbotix_xs_msgs::MotorGains::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   std::vector<int32_t> gains = {req.kp_pos, req.ki_pos, req.kd_pos, req.k1, req.k2, req.kp_vel, req.ki_vel};
   robot_set_motor_pid_gains(req.cmd_type, req.name, gains);
   return true;
@@ -940,6 +1035,9 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(interbotix_xs_msgs::MotorG
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_set_motor_registers(req.cmd_type, req.name, req.reg, req.value);
   return true;
 }
@@ -950,6 +1048,9 @@ bool InterbotixRobotXS::robot_srv_set_motor_registers(interbotix_xs_msgs::Regist
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res)
 {
+  if (!robot_srv_validate(req.cmd_type, req.name))
+    return false;
+
   robot_get_motor_registers(req.cmd_type, req.name, req.reg, res.values);
   return true;
 }
@@ -1020,36 +1121,50 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 
   if (dxl_wb.getProtocolVersion() == 2.0f)
   {
+    // Checks if data can be sent properly
+    if (!dxl_wb.syncRead(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                          all_ptr->joint_ids.data(),
+                          all_ptr->joint_num,
+                          &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }
 
-    result = dxl_wb.syncRead(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+    // Gets present current of all servos
+    if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
                                 all_ptr->joint_ids.data(),
                                 all_ptr->joint_num,
-                                &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
-    result = dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
-                                                  all_ptr->joint_ids.data(),
-                                                  all_ptr->joint_num,
-                                                  control_items["Present_Current"]->address,
-                                                  control_items["Present_Current"]->data_length,
-                                                  get_current.data(),
-                                                  &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
-    result = dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
-                                                  all_ptr->joint_ids.data(),
-                                                  all_ptr->joint_num,
-                                                  control_items["Present_Velocity"]->address,
-                                                  control_items["Present_Velocity"]->data_length,
-                                                  get_velocity.data(),
-                                                  &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
-    result = dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
-                                                  all_ptr->joint_ids.data(),
-                                                  all_ptr->joint_num,
-                                                  control_items["Present_Position"]->address,
-                                                  control_items["Present_Position"]->data_length,
-                                                  get_position.data(),
-                                                  &log);
-    if (!result) ROS_ERROR("[xs_sdk] %s", log);
+                                control_items["Present_Current"]->address,
+                                control_items["Present_Current"]->data_length,
+                                get_current.data(),
+                                &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }             
+
+    // Gets present velocity of all servos
+    if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                                all_ptr->joint_ids.data(),
+                                all_ptr->joint_num,
+                                control_items["Present_Velocity"]->address,
+                                control_items["Present_Velocity"]->data_length,
+                                get_velocity.data(),
+                                &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }
+
+    // Gets present position of all servos
+    if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
+                                all_ptr->joint_ids.data(),
+                                all_ptr->joint_num,
+                                control_items["Present_Position"]->address,
+                                control_items["Present_Position"]->data_length,
+                                get_position.data(),
+                                &log))
+    {
+      ROS_ERROR("[xs_sdk] %s", log);
+    }
 
     uint8_t index = 0;
     for (auto const& id : all_ptr->joint_ids)
@@ -1059,7 +1174,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
       float effort = 0;
 
       if (strcmp(dxl_wb.getModelName(id), "XL-320") == 0) effort = dxl_wb.convertValue2Load(get_current.at(index));
-      else  effort = dxl_wb.convertValue2Current(get_current.at(index));
+      else effort = dxl_wb.convertValue2Current(get_current.at(index));
       velocity = dxl_wb.convertValue2Velocity(id, get_velocity.at(index));
       position = dxl_wb.convertValue2Radian(id, get_position.at(index));
       joint_state_msg.effort.push_back(effort);
@@ -1077,12 +1192,15 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 
     for (auto const& id : all_ptr->joint_ids)
     {
-      result = dxl_wb.readRegister(id,
-                                   control_items["Present_Position"]->address,
-                                   length_of_data,
-                                   get_all_data.data(),
-                                   &log);
-      if (!result) ROS_ERROR("[xs_sdk] %s", log);
+      if (!dxl_wb.readRegister(id,
+                                control_items["Present_Position"]->address,
+                                length_of_data,
+                                get_all_data.data(),
+                                &log))
+      {
+        ROS_ERROR("[xs_sdk] %s", log);
+      }
+
       int16_t effort_raw = DXL_MAKEWORD(get_all_data.at(4), get_all_data.at(5));
       int32_t velocity_raw = DXL_MAKEWORD(get_all_data.at(2), get_all_data.at(3));
       int32_t position_raw = DXL_MAKEWORD(get_all_data.at(0), get_all_data.at(1));
@@ -1113,4 +1231,42 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
   joint_state_msg.header.stamp = ros::Time::now();
   joint_states = joint_state_msg;
   if (pub_states) pub_joint_states.publish(joint_state_msg);
+}
+
+/// @brief Checks service call requests for validity
+/// @param cmd_type request cmd_type field
+/// @param name request name field
+/// @returns true if the service call request is valid, false otherwise
+/// @details cmd_type must be 'single' or 'group'; name must be in the group_map or motor_map
+bool InterbotixRobotXS::robot_srv_validate(const std::string &cmd_type, std::string &name)
+{
+  if (cmd_type == "group") // if group command...
+  {
+    if (group_map.count(name) == 1) // if group name is valid, return true
+    {
+      return true;
+    }
+    else // otherwise error and return false
+    {
+      ROS_ERROR("[xs_sdk] Invalid service call. Group '%s' does not exist. Was it added to the motor config file?", name.c_str());
+      return false;
+    }
+  }
+  else if (cmd_type == "single") // if single joint command...
+  {
+    if (motor_map.count(name) == 1) // if joint name is valid, return true
+    {
+      return true;
+    }
+    else // otherwise error and return false
+    {
+      ROS_ERROR("[xs_sdk] Invalid service call. Joint '%s' does not exist. Was it added to the motor config file?", name.c_str());
+      return false;
+    }
+  }
+  else // if command type is invalid, error and return false
+  {
+    ROS_ERROR("[xs_sdk] Invalid service call. cmd_type '%s'. Choices are 'group' or 'single'.", cmd_type.c_str());
+    return false;
+  }
 }

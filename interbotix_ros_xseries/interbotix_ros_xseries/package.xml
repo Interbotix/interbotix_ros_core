@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<package format="2">
+  <name>interbotix_ros_xseries</name>
+  <version>0.0.0</version>
+  <description>The interbotix_ros_xseries metapackage</description>
+  <maintainer email="trsupport@trossenrobotics.com">Luke Schmitt</maintainer>
+  <license>BSD</license>
+
+  <author email="trsupport@trossenrobotics.com">Luke Schmitt</author>
+
+  <buildtool_depend>catkin</buildtool_depend>
+  <exec_depend>dynamixel_workbench_toolbox</exec_depend>
+  <exec_depend>interbotix_xs_msgs</exec_depend>
+  <exec_depend>interbotix_xs_sdk</exec_depend>
+
+  <export>
+    <metapackage/>
+  </export>
+</package>

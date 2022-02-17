@@ -32,6 +32,7 @@ static const std::string PROFILE_TYPE = "velocity";                     // Defau
 static const int32_t PROFILE_VELOCITY = 0;                              // Allow joint velocity to be infinite when in position control mode - makes robot very reactive to joint commands
 static const int32_t PROFILE_ACCELERATION = 0;                          // Allow joint acceleration to be infinite when in position control mode - makes robot very reactive to joint commands
 static const bool TORQUE_ENABLE = true;                                 // Torque motor on by default
+static bool LOAD_CONFIGS = true;                                        // Get motor configurations by default
 
 struct JointGroup                                                       // Struct to hold multiple joints that represent a group
 {
@@ -301,6 +302,13 @@ private:
   /// @param res [out] - RegisterValues service message response
   /// @details - refer to the service definition for details
   bool robot_srv_get_motor_registers(interbotix_xs_msgs::RegisterValues::Request &req, interbotix_xs_msgs::RegisterValues::Response &res);
+
+  /// @brief Checks service call requests for validity
+  /// @param cmd_type request cmd_type field
+  /// @param name request name field
+  /// @returns true if the service call request is valid, false otherwise
+  /// @details cmd_type must be 'single' or 'group'; name must be in the group_map or motor_map
+  bool robot_srv_validate(const std::string &cmd_type, std::string &name);
 
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
   /// @param e - TimerEvent message [unused]

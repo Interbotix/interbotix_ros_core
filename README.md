@@ -1,7 +1,7 @@
 ![core_banner](images/core_banner.png)
 
 ## Overview
-![core_repo_strucutre](images/core_repo_structure.png)
+![core_repo_structure](images/core_repo_structure.png)
 Welcome to the *interbotix_ros_core* repository! This repo contains custom ROS Wrappers around the various types of actuators that we use at [Interbotix](https://www.trossenrobotics.com/). These ROS packages (one for each actuator) then provide the building blocks necessary to program our robots - no matter if they are 6-dof arms, pan-tilt mechanisms, hexapods, rovers, or a combination thereof (as the figure above should make clear).
 
 Links to the various repositories that build up from this one include:
@@ -16,8 +16,11 @@ Coming soon...
 Support-level software can be found in the [interbotix_ros_toolboxes](https://github.com/Interbotix/interbotix_ros_toolboxes) repository
 
 ### Build Status
-![build-melodic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/melodic.yaml/badge.svg)
-![build-noetic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/noetic.yaml/badge.svg)
+
+#### X-Series Core Build Status
+
+![build-xs-melodic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/melodic.yaml/badge.svg)
+![build-xs-noetic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/noetic.yaml/badge.svg)
 
 ## Repo Structure
 ```
@@ -50,13 +53,6 @@ The third software layer is optional and only exists to provide Python modules o
 
 ##### Research Layer
 The final software layer is the layer at which an end user programs their own code - for manipulation, navigation, computer vision, machine learning or some other application. For example, all the ROS packages and Python scripts within the *interbotix_XXXXX_examples* directory (which exist in the repositories that build on-top of this one) could be described as 'application' layer code.
-
-#### Video Overview
-<p align="center">
-  <a href=”https://www.youtube.com/watch?v=wCWzuL05aN8”>
-    <img width="410" height="auto" src="https://www.trossenrobotics.com/shared/github/github_irros_overview.png">
-  </a>
-</p>
 
 ## Contributing
 Feel free to send PRs to add features to currently existing Actuator ROS wrappers or to include a new one. Note that all PRs should follow the structure and naming conventions outlined in the repo including documentation.
