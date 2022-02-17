@@ -19,8 +19,8 @@ Support-level software can be found in the [interbotix_ros_toolboxes](https://gi
 
 #### X-Series Core Build Status
 
-![build-xs-melodic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/melodic.yaml/badge.svg)
-![build-xs-noetic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/noetic.yaml/badge.svg)
+![build-xs-melodic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-melodic.yaml/badge.svg)
+![build-xs-noetic Status](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-noetic.yaml/badge.svg)
 
 ## Repo Structure
 ```
