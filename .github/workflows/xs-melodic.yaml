@@ -15,11 +15,12 @@ defaults:
     shell: bash
 
 jobs:
-  industrial_ci:
+  xs-melodic:
     strategy:
       matrix:
         env:
-          - {ROS_DISTRO: melodic, ROS_REPO: main}
+          - {ROS_DISTRO: melodic, ROS_REPO: main, BUILDER: catkin_tools}
+          - {ROS_DISTRO: melodic, ROS_REPO: main, BUILDER: catkin_make}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
