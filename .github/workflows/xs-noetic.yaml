@@ -15,11 +15,12 @@ defaults:
     shell: bash
 
 jobs:
-  industrial_ci:
+  xs-noetic:
     strategy:
       matrix:
         env:
-          - {ROS_DISTRO: noetic,  ROS_REPO: main}
+          - {ROS_DISTRO: noetic,  ROS_REPO: main, BUILDER: catkin_tools}
+          - {ROS_DISTRO: noetic,  ROS_REPO: main, BUILDER: catkin_make}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
