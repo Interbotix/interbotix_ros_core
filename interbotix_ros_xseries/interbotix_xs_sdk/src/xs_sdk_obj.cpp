@@ -2,16 +2,24 @@
 
 /// @brief Constructor for the InterbotixRobotXS
 /// @param node_handle - ROS NodeHandle
-InterbotixRobotXS::InterbotixRobotXS(const rclcpp::NodeOptions &options)
-    : rclcpp::Node("xs_sdk", options)
+InterbotixRobotXS::InterbotixRobotXS(
+  bool &success,
+  const rclcpp::NodeOptions &options)
+  :
+  rclcpp::Node("xs_sdk", options)
 {
-  bool success;
   robot_init_parameters();
-  success = robot_get_motor_configs();
-  if (!success) return;
+  if (!robot_get_motor_configs())
+  {
+    success = false;
+    return;
+  }
 
-  success = robot_init_port();
-  if (!success) return;
+  if (!robot_init_port())
+  {
+    success = false;
+    return;
+  }
 
   if (!robot_ping_motors())
   {
@@ -834,7 +842,7 @@ void InterbotixRobotXS::robot_init_subscribers(void)
   using namespace std::placeholders;
   sub_command_group = this->create_subscription<JointGroupCommand>("commands/joint_group", 10, std::bind(&InterbotixRobotXS::robot_sub_command_group, this, _1));
   sub_command_single = this->create_subscription<JointSingleCommand>("commands/joint_single", 10, std::bind(&InterbotixRobotXS::robot_sub_command_single, this, _1));
-  sub_command_traj = this->create_subscription<trajectory_msgs::msg::JointTrajectory>("commands/joint_trajectory", 10, std::bind(&InterbotixRobotXS::robot_sub_command_traj, this, _1));
+  sub_command_traj = this->create_subscription<JointTrajectoryCommand>("commands/joint_trajectory", 10, std::bind(&InterbotixRobotXS::robot_sub_command_traj, this, _1));
 }
 
 /// @brief Initialize ROS Services
@@ -855,11 +863,15 @@ void InterbotixRobotXS::robot_init_timers(void)
 {
   execute_joint_traj = false;
   using namespace std::chrono_literals;
-  if (timer_hz != 0){
-    
-    tmr_joint_states =this->create_wall_timer(std::chrono::milliseconds(int(1.0/timer_hz)), std::bind(&InterbotixRobotXS::robot_update_joint_states, this));
-    }
-  tmr_joint_traj = this->create_wall_timer(50ms, std::bind(&InterbotixRobotXS::robot_execute_trajectory, this));
+  if (timer_hz != 0)
+  {
+    // create a timer that updates the joint states with a period of 1/timer_hz
+    std::chrono::milliseconds update_rate_in_ms = std::chrono::milliseconds(int(1.0/(timer_hz)*1000.0));
+    tmr_joint_states = this->create_wall_timer(
+      update_rate_in_ms, 
+      std::bind(&InterbotixRobotXS::robot_update_joint_states,
+        this));
+  }
 }
 
 /// @brief Waits until first JointState message is received
@@ -895,6 +907,7 @@ void InterbotixRobotXS::robot_sub_command_single(const JointSingleCommand::Share
 /// @details - refer to the message definition for details
 void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::SharedPtr msg)
 {
+  using namespace std::chrono_literals;
   if (execute_joint_traj)
   {
     RCLCPP_WARN(this->get_logger(), "Trajectory rejected since joints are still moving.");
@@ -926,13 +939,17 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
     }
   }
   joint_traj_cmd = msg;
-  cntr = 1;
-  set_up_start_time = true;
   execute_joint_traj = true;
+
+  // create timer that immediately triggers callback
+  tmr_joint_traj = create_wall_timer(
+    0s,
+    std::bind(&InterbotixRobotXS::robot_execute_trajectory,
+      this));
 }
 
 /// @brief ROS Service to torque the joints on the robot on/off
-/// @param req - TorqueEnable service message requestF
+/// @param req - TorqueEnable service message request
 /// @param res [out] - TorqueEnable service message response [unused]
 /// @details - refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_torque_enable(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<TorqueEnable::Request> req, std::shared_ptr<TorqueEnable::Response> res)
@@ -1074,29 +1091,49 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(const std::shared_ptr<rmw_
 }
 
 /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
-/// @param e - TimerEvent message [unused]
 void InterbotixRobotXS::robot_execute_trajectory()
 {
+  // get the current real time for this callback execution
+  rclcpp::Time current_real = this->get_clock()->now();
+  using namespace std::chrono_literals;
 
-  if (!execute_joint_traj){
-    return;
-  }
-  
+  static size_t cntr = 1;
+  RCLCPP_DEBUG(this->get_logger(), "Executing trajectory step %li/%li.", cntr, joint_traj_cmd->traj.points.size());
+
+  // check if end of trajectory has been reached
+  // if done, reset counter, set execution status bool to false, and cancel the
+  //  trajectory execution timer.
+  // if not done, cancel the timer (pseudo one-shot), and start another.
   if (cntr == joint_traj_cmd->traj.points.size())
   {
+    if (!tmr_joint_traj->is_canceled())
+      tmr_joint_traj->cancel();
     execute_joint_traj = false;
     cntr = 1;
-    set_up_start_time = true;
+    RCLCPP_DEBUG(this->get_logger(), "Reached end of trajectory.");
     return;
   }
-
-  if (set_up_start_time){
-    traj_start_time = joint_traj_cmd->traj.points[cntr].time_from_start + this->get_clock()->now();
-    set_up_start_time = false;
+  else
+  {
+    // cancel trajectory timer
+    if (!tmr_joint_traj->is_canceled())
+      tmr_joint_traj->cancel();
+    
+    // get the length of time the timer should be if perfect
+    rclcpp::Duration period = std::chrono::nanoseconds(
+      joint_traj_cmd->traj.points[cntr].time_from_start.nanosec 
+        - joint_traj_cmd->traj.points[cntr-1].time_from_start.nanosec);
+    
+    // create new timer with the actual length of time it should execute
+    //  (period - (now - start_of_callback))
+    tmr_joint_traj = this->create_wall_timer(
+      std::chrono::nanoseconds(
+        period.nanoseconds() - (this->get_clock()->now().nanoseconds() - current_real.nanoseconds())),
+      std::bind(&InterbotixRobotXS::robot_execute_trajectory,
+        this));
   }
-  if (this->get_clock()->now() < traj_start_time)
-    return;
 
+  // write commands to the motors depending on cmd_type and mode
   if (joint_traj_cmd->cmd_type == "group")
   {
     if (group_map[joint_traj_cmd->name].mode.find("position") != std::string::npos)
@@ -1125,11 +1162,9 @@ void InterbotixRobotXS::robot_execute_trajectory()
       robot_write_joint_command(joint_traj_cmd->name, joint_traj_cmd->traj.points[cntr].effort.at(0));
   }
   cntr++;
-  set_up_start_time = true;
 }
 
 /// @brief ROS Timer that reads current states from all the motors and publishes them to the joint_states topic
-/// @param e - TimerEvent message [unused]
 void InterbotixRobotXS::robot_update_joint_states()
 {
   bool result = false;

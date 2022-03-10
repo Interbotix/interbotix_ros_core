@@ -25,19 +25,19 @@ find_package(yaml-cpp REQUIRED)
 find_package(backward_ros REQUIRED)
 include_directories(include)
 
-
 set (ROS_DEPENDENCIES 
-ament_index_cpp
-rclcpp
-rclcpp_action
-control_msgs
-dynamixel_workbench_toolbox
-sensor_msgs
-std_msgs
-trajectory_msgs
-urdf
-xseries_msgs
+  ament_index_cpp
+  rclcpp
+  rclcpp_action
+  control_msgs
+  dynamixel_workbench_toolbox
+  sensor_msgs
+  std_msgs
+  trajectory_msgs
+  urdf
+  interbotix_xs_msgs
 )
+
 ###########
 ## Build ##
 ###########
@@ -47,7 +47,6 @@ xseries_msgs
 add_executable(xs_sdk src/xs_sdk.cpp src/xs_sdk_obj.cpp)
 ament_target_dependencies(xs_sdk ${ROS_DEPENDENCIES})
 target_link_libraries(xs_sdk yaml-cpp)
-
 
 #############
 ## Install ##

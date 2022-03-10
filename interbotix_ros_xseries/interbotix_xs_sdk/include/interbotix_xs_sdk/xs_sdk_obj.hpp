@@ -83,7 +83,9 @@ public:
 
   /// @brief Constructor for the InterbotixRobotXS
   /// @param node_handle - ROS NodeHandle
-  explicit InterbotixRobotXS(const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
+  explicit InterbotixRobotXS(
+    bool &success,
+    const rclcpp::NodeOptions &options = rclcpp::NodeOptions());
 
   /// @brief Destructor for the InterbotixRobotXS
   ~InterbotixRobotXS();
@@ -203,7 +205,7 @@ private:
   rclcpp::Time traj_start_time;                                                 // Indicating the trajectory start time
   bool set_up_start_time;                                                       // Inficating whether to set up relative time.
   size_t cntr;                                                                  // Trajectory counter
-  std::string port;                                                             // Holds the USB port name that connects to the U2D2
+  std::string port = "/dev/ttyDXL";                                             // Holds the USB port name that connects to the U2D2
   std::string js_topic;                                                         // Desired JointState topic name
   std::vector<MotorInfo> motor_info_vec;                                        // Vector containing all the desired EEPROM register values to command the motors at startup
   std::vector<std::string> gripper_order;                                       // Vector containing the order in which multiple grippers (if present) are published in the JointState message

@@ -5,7 +5,7 @@
     interbotix_xs_msgs provides messages for the Interbotix X-Series family 
     of products.
   </description>
-  <author email="luke@trossenrobotics.com">Luke Schmitt</author>
+  <author email="trsupport@trossenrobotics.com">Luke Schmitt</author>
   <maintainer email="trsupport@trossenrobotics.com">Luke Schmitt</maintainer>
   <license>BSD</license>
 

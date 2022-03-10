@@ -4,6 +4,7 @@ import math
 import yaml
 import rclpy
 from rclpy.node import Node
+from rclpy.constants import S_TO_NS
 import threading
 import numpy as np
 from interbotix_xs_msgs.msg import *
@@ -47,7 +48,6 @@ class InterbotixRobotXS(Node):
         self.create_subscription(JointTrajectoryCommand, 'commands/joint_trajectory', self.robot_sub_command_traj, 10)
         self.pub_joint_states = self.create_publisher(JointState, self.js_topic, 10)
         self.create_timer(1.0/self.timer_hz, self.robot_update_joint_states)
-
 
     ### @brief Loads the URDF to get joint limit information
     def get_urdf_info(self):
@@ -214,8 +214,7 @@ class InterbotixRobotXS(Node):
         half_dist = linear_position / 2.0
         arm_length = self.gripper_map[name]["arm_length"]
         horn_radius = self.gripper_map[name]["horn_radius"]
-        result = math.pi/2.0 - math.acos((horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist))
-        return result
+        return math.pi/2.0 - math.acos((horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist))
 
     ### @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
     ### @param name - name of the gripper sevo to command
@@ -294,8 +293,11 @@ class InterbotixRobotXS(Node):
                 elif mode == "pwm" or mode == "current":
                     self.robot_write_joint_command(msg.name, points[x].effort[0])
             if x < len(points) - 1:
-                period = (points[x].time_from_start - (self.get_clock().now() - time_start))
-                rate = self.create_rate(period)
+                # TODO: clean this up
+                period = (
+                    rclpy.duration.Duration.from_msg(points[x].time_from_start).nanoseconds 
+                        - (self.get_clock().now() - time_start).nanoseconds) / S_TO_NS
+                rate = self.create_rate(1.0/period)
                 rate.sleep()
 
         self.exectue_joint_traj = False
@@ -466,14 +468,25 @@ def main(args=None):
     rclpy.init(args=args)
     try:
         node = InterbotixRobotXS()
-        executor = rclpy.executors.SingleThreadedExecutor()
+        executor = rclpy.executors.MultiThreadedExecutor()
         executor.add_node(node)
         try:
             executor.spin()
+        except KeyboardInterrupt:
+            print("Keyboard interrupt caught. Shutting down...")
+        except BaseException as e:
+            print(f"Uncaught exception occurred: {e}")
         finally:
             executor.shutdown()
             node.destroy_node()
+    except KeyboardInterrupt:
+        print("Keyboard interrupt caught. Shutting down...")
+    except BaseException as e:
+        print(f"Uncaught exception occurred: {e}")
     finally:
+        if executor is not None:
+            if not executor._is_shutdown:
+                executor.shutdown()
         rclpy.shutdown()
 
 
