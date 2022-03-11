@@ -13,12 +13,8 @@ find_package(ament_cmake REQUIRED)
 find_package(ament_index_cpp REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclpy REQUIRED)
-find_package(rclcpp_action REQUIRED)
-find_package(control_msgs REQUIRED)
 find_package(dynamixel_workbench_toolbox REQUIRED)
 find_package(sensor_msgs REQUIRED)
-find_package(std_msgs REQUIRED)
-find_package(trajectory_msgs REQUIRED)
 find_package(urdf REQUIRED)
 find_package(interbotix_xs_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
@@ -27,12 +23,8 @@ include_directories(include)
 set (ROS_DEPENDENCIES 
   ament_index_cpp
   rclcpp
-  rclcpp_action
-  control_msgs
   dynamixel_workbench_toolbox
   sensor_msgs
-  std_msgs
-  trajectory_msgs
   urdf
   interbotix_xs_msgs
 )

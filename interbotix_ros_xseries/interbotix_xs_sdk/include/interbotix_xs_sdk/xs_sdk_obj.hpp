@@ -6,8 +6,6 @@
 #include <unordered_map>
 #include <yaml-cpp/yaml.h>
 #include <sensor_msgs/msg/joint_state.hpp>
-#include <trajectory_msgs/msg/joint_trajectory.hpp>
-#include <trajectory_msgs/msg/joint_trajectory.hpp>
 #include <dynamixel_workbench_toolbox/dynamixel_workbench.h>
 #include "interbotix_xs_msgs/srv/reboot.hpp"
 #include "interbotix_xs_msgs/srv/robot_info.hpp"
