@@ -20,9 +20,8 @@ find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(trajectory_msgs REQUIRED)
 find_package(urdf REQUIRED)
-find_package(xseries_msgs REQUIRED)
+find_package(interbotix_xs_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
-find_package(backward_ros REQUIRED)
 include_directories(include)
 
 set (ROS_DEPENDENCIES 

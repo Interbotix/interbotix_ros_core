@@ -21,8 +21,7 @@
   <depend>trajectory_msgs</depend>
   <depend>urdf</depend>
   <depend>yaml-cpp</depend>
-  <depend>xseries_msgs</depend>
-  <depend>backward_ros</depend>
+  <depend>interbotix_xs_msgs</depend>
   <!-- The export tag contains other, unspecified, tags -->
   <export>
     <build_type>ament_cmake</build_type>
