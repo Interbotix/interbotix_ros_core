@@ -1031,6 +1031,7 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(const std::shared_ptr<rmw_reque
       res->joint_velocity_limits.push_back(ptr->limits->velocity);
     }
   }
+  return true;
 }
 
 /// @brief ROS Service that allows the user to change operating modes
