@@ -1,8 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import math
 import yaml
-import rospy
+import rclpy
+from rclpy.node import Node
+from rclpy.constants import S_TO_NS
 import threading
 import numpy as np
 from interbotix_xs_msgs.msg import *
@@ -12,8 +14,9 @@ from sensor_msgs.msg import JointState
 
 ### @brief Class that simulates the actual InterbotixRobotXS class
 ### @details - allows to use the same higher level ROS packages or Python API code on a simulated robot with no change to the code
-class InterbotixRobotXS(object):
+class InterbotixRobotXS(Node):
     def __init__(self):
+        super().__init__('xs_sdk_sim')
         self.rd = None                          # Holds the URDF loaded from the ROS parameter server
         self.timer_hz = 20                      # Rate [Hz] at which the ROS Timer (in charge of publishing joint states) should run
         self.js_topic = None                    # Joint States topic
@@ -28,41 +31,42 @@ class InterbotixRobotXS(object):
         self.gripper_map = {}                   # Maps a gripper name with a Gripper-type dictionary (refer to the top of the xs_sdk_obj.h file for reference)
         self.js_index_map = {}                  # Maps a joint name with its index in self.joint_states.position
         self.gripper_order = []                 # List of grippers as they appear in the 'joint_order' parameter in the Motor Configs YAML file
+        self.declare_parameter('motor_configs', '')
+        self.declare_parameter('mode_configs', '')
+        self.declare_parameter('robot_description', '')
         self.get_urdf_info()
         self.robot_get_motor_configs()
-        rospy.Service('torque_enable', TorqueEnable, self.robot_srv_torque_enable)
-        rospy.Service('reboot_motors', Reboot, self.robot_srv_reboot_motors)
-        rospy.Service('get_robot_info', RobotInfo, self.robot_srv_get_robot_info)
-        rospy.Service('set_operating_modes', OperatingModes, self.robot_srv_set_operating_modes)
-        rospy.Service('set_motor_pid_gains', MotorGains, self.robot_srv_set_motor_pid_gains)
-        rospy.Service('set_motor_registers', RegisterValues, self.robot_srv_set_motor_registers)
-        rospy.Service('get_motor_registers', RegisterValues, self.robot_srv_get_motor_registers)
-        rospy.Subscriber('commands/joint_group', JointGroupCommand, self.robot_sub_command_group)
-        rospy.Subscriber('commands/joint_single', JointSingleCommand, self.robot_sub_command_single)
-        rospy.Subscriber('commands/joint_trajectory', JointTrajectoryCommand, self.robot_sub_command_traj)
-        self.pub_joint_states = rospy.Publisher(self.js_topic, JointState, queue_size=1)
-        rospy.Timer(rospy.Duration(1.0/self.timer_hz), self.robot_update_joint_states)
+        self.create_service(TorqueEnable, 'torque_enable', self.robot_srv_torque_enable)
+        self.create_service(Reboot, 'reboot_motors', self.robot_srv_reboot_motors)
+        self.create_service(RobotInfo, 'get_robot_info', self.robot_srv_get_robot_info)
+        self.create_service(OperatingModes, 'set_operating_modes', self.robot_srv_set_operating_modes)
+        self.create_service(MotorGains, 'set_motor_pid_gains', self.robot_srv_set_motor_pid_gains)
+        self.create_service(RegisterValues, 'set_motor_registers', self.robot_srv_set_motor_registers)
+        self.create_service(RegisterValues, 'get_motor_registers', self.robot_srv_get_motor_registers)
+        self.create_subscription(JointGroupCommand, 'commands/joint_group', self.robot_sub_command_group, 10)
+        self.create_subscription(JointSingleCommand, 'commands/joint_single', self.robot_sub_command_single, 10)
+        self.create_subscription(JointTrajectoryCommand, 'commands/joint_trajectory', self.robot_sub_command_traj, 10)
+        self.pub_joint_states = self.create_publisher(JointState, self.js_topic, 10)
+        self.create_timer(1.0/self.timer_hz, self.robot_update_joint_states)
 
     ### @brief Loads the URDF to get joint limit information
     def get_urdf_info(self):
-        robot_name = rospy.get_namespace().strip("/")
-        full_rd_name = '/' + robot_name + '/robot_description'
-        if rospy.has_param(full_rd_name):
-            self.rd = URDF.from_parameter_server(key=full_rd_name)
+        if self.has_parameter('robot_description'):
+            self.rd = URDF.from_xml_string(self.get_parameter('robot_description').get_parameter_value().string_value)
 
     ### @brief Loads the 'motor_configs' and 'mode_configs' YAML files and populates various class dictionaries
     def robot_get_motor_configs(self):
 
         # get filepaths to the YAML files from the ROS parameter server
-        motor_configs_filepath = rospy.get_param('~motor_configs')
-        mode_configs_filepath = rospy.get_param('~mode_configs')
+        motor_configs_filepath = self.get_parameter('motor_configs').get_parameter_value().string_value
+        mode_configs_filepath = self.get_parameter('mode_configs').get_parameter_value().string_value
 
         # try to open and load both files into local variables
         try:
             with open(motor_configs_filepath, "r") as yamlfile:
                 motor_configs = yaml.safe_load(yamlfile)
         except IOError:
-            rospy.logerr("[xs_sdk] Motor Config File was not found.")
+            self.get_logger().error("Motor Config File was not found.")
             return False
 
         try:
@@ -70,7 +74,7 @@ class InterbotixRobotXS(object):
                 mode_configs = yaml.safe_load(yamlfile)
         except IOError:
             mode_configs = {}
-            rospy.loginfo("[xs_sdk] Mode Config file was not found.")
+            self.get_logger().info("Mode Config file was not found.")
 
         joint_order = motor_configs["joint_order"]
         sleep_positions = motor_configs["sleep_positions"]
@@ -156,14 +160,14 @@ class InterbotixRobotXS(object):
                 self.robot_set_joint_operating_mode(joint_name, mode, profile_type, profile_velocity, profile_acceleration)
             self.group_map[name]["mode"] = mode
             self.group_map[name]["profile_type"] = profile_type
-            rospy.loginfo("[xs_sdk] The operating mode for the '%s' group was changed to %s." % (name, mode))
+            self.get_logger().info("The operating mode for the '%s' group was changed to %s." % (name, mode))
         elif (cmd_type == "single" and name in self.motor_map):
             self.robot_set_joint_operating_mode(name, mode, profile_type, profile_velocity, profile_acceleration)
-            rospy.loginfo("[xs_sdk] The operating mode for the '%s' joint was changed to %s." % (name, mode))
+            self.get_logger().info("The operating mode for the '%s' joint was changed to %s." % (name, mode))
         elif ((cmd_type == "group" and name not in self.group_map) or (cmd_type == "single" and name not in self.motor_map)):
-            rospy.loginfo("[xs_sdk] The '%s' joint/group does not exist. Was it added to the motor config file?" % name)
+            self.get_logger().info("The '%s' joint/group does not exist. Was it added to the motor config file?" % name)
         else:
-            rospy.logerr("[xs_sdk] Invalid command for argument 'cmd_type' while setting operating mode.")
+            self.get_logger().error("Invalid command for argument 'cmd_type' while setting operating mode.")
 
     ### @brief Helper function used to set the operating mode for a single motor
     ### @param name - desired motor name
@@ -210,8 +214,7 @@ class InterbotixRobotXS(object):
         half_dist = linear_position / 2.0
         arm_length = self.gripper_map[name]["arm_length"]
         horn_radius = self.gripper_map[name]["horn_radius"]
-        result = math.pi/2.0 - math.acos((horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist))
-        return result
+        return math.pi/2.0 - math.acos((horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist))
 
     ### @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
     ### @param name - name of the gripper sevo to command
@@ -244,10 +247,10 @@ class InterbotixRobotXS(object):
 
         # check to make sure there is no trajectory currently running and that it is valid
         if self.execute_joint_traj:
-            rospy.loginfo("[xs_sdk] Trajectory rejected since joints are still moving.")
+            self.get_logger().info("Trajectory rejected since joints are still moving.")
             return
         if len(msg.traj.points) < 2:
-            rospy.loginfo("[xs_sdk] Trajectory has fewer than 2 points. Aborting...")
+            self.get_logger().info("Trajectory has fewer than 2 points. Aborting...")
             return
 
         # get the mode and joint_names
@@ -266,14 +269,14 @@ class InterbotixRobotXS(object):
                 expected_state = msg.traj.points[0].positions[x]
                 actual_state = self.joint_states.position[self.js_index_map[joint_names[x]]]
                 if not (abs(expected_state - actual_state) < 0.01):
-                    rospy.loginfo("[xs_sdk] The %s joint is not at the correct initial state." % joint_names[x])
-                    rospy.loginfo("[xs_sdk] Expected state: %.2f, Actual State: %.2f." % (expected_state, actual_state))
+                    self.get_logger().info("The %s joint is not at the correct initial state." % joint_names[x])
+                    self.get_logger().info("Expected state: %.2f, Actual State: %.2f." % (expected_state, actual_state))
 
         # execute the trajectory
         self.exectue_joint_traj = True
 
         points = msg.traj.points
-        time_start = rospy.Time.now()
+        time_start = self.get_clock().now()
         for x in range(1, len(points)):
             if msg.cmd_type == "group":
                 if "position" in mode:
@@ -290,8 +293,12 @@ class InterbotixRobotXS(object):
                 elif mode == "pwm" or mode == "current":
                     self.robot_write_joint_command(msg.name, points[x].effort[0])
             if x < len(points) - 1:
-                period = (points[x].time_from_start - (rospy.Time.now() - time_start))
-                rospy.sleep(period)
+                # TODO: clean this up
+                period = (
+                    rclpy.duration.Duration.from_msg(points[x].time_from_start).nanoseconds 
+                        - (self.get_clock().now() - time_start).nanoseconds) / S_TO_NS
+                rate = self.create_rate(1.0/period)
+                rate.sleep()
 
         self.exectue_joint_traj = False
 
@@ -299,32 +306,31 @@ class InterbotixRobotXS(object):
     ### @param req - TorqueEnable service message request
     ### @return <obj> - TorqueEnable service message response [unused]
     ### @details - refer to the service definition for details
-    def robot_srv_torque_enable(self, req):
+    def robot_srv_torque_enable(self, req, res):
         if (req.cmd_type == "group"):
-            if (req.enable): rospy.loginfo("[xs_sdk] The '%s' group was torqued on." % req.name)
-            else: rospy.loginfo("[xs_sdk] The '%s' group was torqued off." % req.name)
+            if (req.enable): self.get_logger().info("The '%s' group was torqued on." % req.name)
+            else: self.get_logger().info("The '%s' group was torqued off." % req.name)
         else:
-            if (req.enable): rospy.loginfo("[xs_sdk] The '%s' joint was torqued on." % req.name)
-            else: rospy.loginfo("[xs_sdk] The '%s' joint was torqued off." % req.name)
-        return TorqueEnableResponse()
+            if (req.enable): self.get_logger().info("The '%s' joint was torqued on." % req.name)
+            else: self.get_logger().info("The '%s' joint was torqued off." % req.name)
+        return res
 
     ### @brief ROS Service to 'simulate' rebooting the motors on the robot (doesn't actually do anything)
     ### @param req - Reboot service message request
     ### @return <obj> - Reboot service message response [unused]
     ### @details - refer to the service definition for details
-    def robot_srv_reboot_motors(self, req):
+    def robot_srv_reboot_motors(self, req, res):
         if (req.cmd_type == "group"):
-            rospy.loginfo("[xs_sdk] The '%s' group was rebooted." % req.name)
+            self.get_logger().info("The '%s' group was rebooted." % req.name)
         else:
-            rospy.loginfo("[xs_sdk] The '%s' joint was rebooted." % req.name)
-        return RebootResponse()
+            self.get_logger().info("The '%s' joint was rebooted." % req.name)
+        return res
 
     ### @brief ROS Service that allows the user to get information about the robot
     ### @param req - RobotInfo service message request
     ### @return <obj> - RobotInfo service message response
     ### @details - refer to the service definition for details
-    def robot_srv_get_robot_info(self, req):
-        res = RobotInfoResponse()
+    def robot_srv_get_robot_info(self, req, res):
         joint_names = []
         if (req.cmd_type == "group"):
             joint_names = self.group_map[req.name]["joint_names"]
@@ -358,23 +364,23 @@ class InterbotixRobotXS(object):
     ### @param req - OperatingModes service message request
     ### @return <obj> - OperatingModes service message response [unused]
     ### @details - refer to the service definition for details
-    def robot_srv_set_operating_modes(self, req):
+    def robot_srv_set_operating_modes(self, req, res):
         self.robot_set_operating_modes(req.cmd_type, req.name, req.mode, req.profile_type, req.profile_velocity, req.profile_acceleration)
-        return OperatingModesResponse()
+        return res
 
     ### @brief ROS Service that allows the user to set the motor firmware PID gains (doesn't actually do anything)
     ### @param req - MotorGains service message request
     ### @return <obj> - MotorGains service message response [unused]
     ### @details - refer to the service defintion for details
-    def robot_srv_set_motor_pid_gains(self, req):
-        return MotorGainsResponse()
+    def robot_srv_set_motor_pid_gains(self, req, res):
+        return res
 
     ### @brief ROS Service that allows the user to change a specific register to a specific value for multiple motors
     ### @param req - RegisterValues service message request
     ### @return <obj> - RegisterValues service message response [unused]
     ### @details - refer to the service definition for details - only works with the 'Profile_Velocity' and
     ###            'Profile_Acceleration' registers; otherwise, it doesn't do anything
-    def robot_srv_set_motor_registers(self, req):
+    def robot_srv_set_motor_registers(self, req, res):
         if req.reg == "Profile_Velocity" or req.reg == "Profile_Acceleration":
             reg = "profile_velocity" if req.reg == "Profile_Velocity" else "profile_acceleration"
             if req.cmd_type == "group":
@@ -383,15 +389,14 @@ class InterbotixRobotXS(object):
                     self.motor_map[joint][reg] = req.value
             elif req.cmd_type == "single":
                 self.motor_map[req.name][reg] = req.value
-        return RegisterValuesResponse()
+        return res
 
     ### @brief ROS Service that allows the user to read a specific register on multiple motors
     ### @param req - RegisterValues service message request
     ### @return <obj> - RegisterValues service message response
     ### @details - refer to the service definition for details - only works with the 'Profile_Velocity' and
     ###            'Profile_Acceleration' registers; otherwise, it doesn't do anything
-    def robot_srv_get_motor_registers(self, req):
-        res = RegisterValuesResponse()
+    def robot_srv_get_motor_registers(self, req, res):
         if req.reg == "Profile_Velocity" or req.reg == "Profile_Acceleration":
             reg = "profile_velocity" if req.reg == "Profile_Velocity" else "profile_acceleration"
             if req.cmd_type == "group":
@@ -409,7 +414,7 @@ class InterbotixRobotXS(object):
     ###            when the last element is taken out from the list, the dictionary key is thrown out. Otherwise, 'self.commands[joint]'
     ###            is a scalar. If the scalar is a position, the dictionary key is thrown out afterwards. Otherwise, the dictionary key is
     ###            not thrown out unless its value is 0 (which is what you want for 'pwm', 'current', or 'velocity' modes)
-    def robot_update_joint_states(self, event):
+    def robot_update_joint_states(self):
         with self.cmd_mutex:
             for joint in self.commands.copy():
                 mode = self.motor_map[joint]["mode"]
@@ -456,13 +461,34 @@ class InterbotixRobotXS(object):
                             self.joint_states.position[self.js_index_map[gpr["left_finger"]]] = lin_pos
                             self.joint_states.position[self.js_index_map[gpr["right_finger"]]] = -lin_pos
 
-            self.joint_states.header.stamp = rospy.Time.now()
+            self.joint_states.header.stamp = self.get_clock().now().to_msg()
             self.pub_joint_states.publish(self.joint_states)
 
-def main():
-    rospy.init_node('xs_sdk_sim')
-    InterbotixRobotXS()
-    rospy.spin()
+def main(args=None):
+    rclpy.init(args=args)
+    try:
+        node = InterbotixRobotXS()
+        executor = rclpy.executors.MultiThreadedExecutor()
+        executor.add_node(node)
+        try:
+            executor.spin()
+        except KeyboardInterrupt:
+            print("Keyboard interrupt caught. Shutting down...")
+        except BaseException as e:
+            print(f"Uncaught exception occurred: {e}")
+        finally:
+            executor.shutdown()
+            node.destroy_node()
+    except KeyboardInterrupt:
+        print("Keyboard interrupt caught. Shutting down...")
+    except BaseException as e:
+        print(f"Uncaught exception occurred: {e}")
+    finally:
+        if executor is not None:
+            if not executor._is_shutdown:
+                executor.shutdown()
+        rclpy.shutdown()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

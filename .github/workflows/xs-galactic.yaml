@@ -1,0 +1,31 @@
+name: build-xs-galactic
+
+on:
+  push:
+    branches:
+      - galactic-devel
+  pull_request:
+    branches:
+      - galactic-devel
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  xs-galactic:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: galactic, ROS_REPO: main}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+          path: src
+      - name: Create src directory for xs
+        run: |
+          rm src/interbotix_ros_xseries/COLCON_IGNORE
+      - uses: 'ros-industrial/industrial_ci@master'
+        env: ${{matrix.env}}

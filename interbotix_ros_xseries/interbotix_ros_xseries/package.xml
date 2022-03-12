@@ -8,12 +8,12 @@
 
   <author email="trsupport@trossenrobotics.com">Luke Schmitt</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
   <exec_depend>dynamixel_workbench_toolbox</exec_depend>
   <exec_depend>interbotix_xs_msgs</exec_depend>
   <exec_depend>interbotix_xs_sdk</exec_depend>
 
   <export>
-    <metapackage/>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

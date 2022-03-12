@@ -1,20 +1,25 @@
-#include "interbotix_xs_sdk/xs_sdk_obj.h"
+#include "interbotix_xs_sdk/xs_sdk_obj.hpp"
 
 int main( int argc, char** argv )
 {
-    ros::init(argc, argv, "xs_sdk");
-    ros::NodeHandle n;
+    rclcpp::init(argc, argv);
     bool success = true;
-    InterbotixRobotXS bot(&n, success);
+    auto node = std::make_shared<InterbotixRobotXS>(success);
     if (success)
-        ros::spin();
+    {
+        rclcpp::executors::MultiThreadedExecutor exec;
+        exec.add_node(node);
+        exec.spin();
+    }
     else
     {
-        ROS_ERROR(
-            "[xs_sdk] For troubleshooting, please see "
+        RCLCPP_ERROR(
+            node->get_logger(),
+            "For troubleshooting, please see "
             "https://www.trossenrobotics.com/docs/interbotix_xsarms/troubleshooting/index.html");
-        ros::shutdown();
-        
+        rclcpp::shutdown();
+        return 1;
     }
+    rclcpp::shutdown();
     return 0;
 }
