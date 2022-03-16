@@ -3,10 +3,11 @@ name: build-xs-galactic
 on:
   push:
     branches:
-      - galactic-devel
+      - galactic
   pull_request:
     branches:
-      - galactic-devel
+      - galactic
+  workflow_dispatch:
 
 defaults:
   run:
