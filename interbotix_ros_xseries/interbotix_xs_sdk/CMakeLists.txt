@@ -86,3 +86,15 @@ catkin_install_python(PROGRAMS
   scripts/xs_sdk_sim
   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
+
+## Mark other files for installation (e.g. launch and bag files, etc.)
+install(
+  DIRECTORY
+    config
+  DESTINATION
+    ${CATKIN_PACKAGE_SHARE_DESTINATION}
+)
+
+install(TARGETS xs_sdk
+  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
