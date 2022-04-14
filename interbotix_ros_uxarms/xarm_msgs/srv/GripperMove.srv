@@ -1,7 +1,0 @@
-# position command of gripper: range from 0(close) to 850 (open)
-float32 pulse_pos
-
----
-
-int16 ret
-string message
