@@ -58,7 +58,7 @@ int8 SPEED_INC = 23
 int8 SPEED_DEC = 24
 
 # Quickly toggle between a fast and slow speed setting
-int8 SPEED_COURSE = 25
+int8 SPEED_COARSE = 25
 int8 SPEED_FINE = 26
 
 # Inc/Dec Gripper pressure

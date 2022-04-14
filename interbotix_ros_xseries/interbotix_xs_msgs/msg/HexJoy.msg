@@ -62,7 +62,7 @@ int8 SPEED_INC = 29
 int8 SPEED_DEC = 30
 
 # Quickly toggle between a fast and slow speed setting
-int8 SPEED_COURSE = 31
+int8 SPEED_COARSE = 31
 int8 SPEED_FINE = 32
 
 #########################################################################################################
