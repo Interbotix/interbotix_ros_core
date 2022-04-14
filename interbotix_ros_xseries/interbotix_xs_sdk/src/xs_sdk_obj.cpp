@@ -1,7 +1,7 @@
 #include "interbotix_xs_sdk/xs_sdk_obj.hpp"
 
 /// @brief Constructor for the InterbotixRobotXS
-/// @param node_handle - ROS NodeHandle
+/// @param options ROS NodeOptions
 InterbotixRobotXS::InterbotixRobotXS(
   bool &success,
   const rclcpp::NodeOptions &options)
@@ -36,7 +36,7 @@ InterbotixRobotXS::InterbotixRobotXS(
   }
 
   robot_init_controlItems();
-  robot_init_SDK_handlers();
+  robot_init_workbench_handlers();
   robot_init_operating_modes();
   robot_init_publishers();
   robot_init_subscribers();
@@ -58,12 +58,12 @@ void InterbotixRobotXS::robot_init_parameters(void){
 }
 
 /// @brief Set the operating mode for a specific group of motors or a single motor
-/// @param cmd_type - set to 'group' if changing the operating mode for a group of motors or 'single' if changing the operating mode for a single motor
-/// @param name - desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
-/// @param mode - desired operating mode (either 'position', 'linear_position', 'ext_position', 'velocity', 'pwm', 'current', or 'current_based_position')
-/// @param profile_type - set to 'velocity' for a Velocity-based Profile or 'time' for a Time-based Profile (modifies Bit 2 of the 'Drive_Mode' register)
-/// @param profile_velocity - passthrough to the Profile_Velocity register on the motor
-/// @param profile_acceleration - passthrough to the Profile_Acceleration register on the motor
+/// @param cmd_type set to 'group' if changing the operating mode for a group of motors or 'single' if changing the operating mode for a single motor
+/// @param name desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
+/// @param mode desired operating mode (either 'position', 'linear_position', 'ext_position', 'velocity', 'pwm', 'current', or 'current_based_position')
+/// @param profile_type set to 'velocity' for a Velocity-based Profile or 'time' for a Time-based Profile (modifies Bit 2 of the 'Drive_Mode' register)
+/// @param profile_velocity passthrough to the Profile_Velocity register on the motor
+/// @param profile_acceleration passthrough to the Profile_Acceleration register on the motor
 void InterbotixRobotXS::robot_set_operating_modes(std::string const& cmd_type, std::string const& name, std::string const& mode, std::string const& profile_type, int32_t profile_velocity, int32_t profile_acceleration)
 {
   if (cmd_type == "group" && group_map.count(name) > 0)
@@ -72,12 +72,12 @@ void InterbotixRobotXS::robot_set_operating_modes(std::string const& cmd_type, s
       robot_set_joint_operating_mode(joint_name, mode, profile_type, profile_velocity, profile_acceleration);
     group_map[name].mode = mode;
     group_map[name].profile_type = profile_type;
-    RCLCPP_INFO(this->get_logger(), "The operating mode for the '%s' group was changed to %s.", name.c_str(), mode.c_str());
+    RCLCPP_INFO(this->get_logger(), "The operating mode for the '%s' group was changed to '%s' with profile type '%s'.", name.c_str(), mode.c_str(), profile_type.c_str());
   }
   else if (cmd_type == "single" && motor_map.count(name) > 0)
   {
     robot_set_joint_operating_mode(name, mode, profile_type, profile_velocity, profile_acceleration);
-    RCLCPP_INFO(this->get_logger(), "The operating mode for the '%s' joint was changed to %s.", name.c_str(), mode.c_str());
+    RCLCPP_INFO(this->get_logger(), "The operating mode for the '%s' joint was changed to '%s' with profile type '%s'.", name.c_str(), mode.c_str(), profile_type.c_str());
   }
   else if (cmd_type == "group" && group_map.count(name) == 0 || cmd_type == "single" && motor_map.count(name) == 0)
     RCLCPP_WARN(this->get_logger(), "The '%s' joint/group does not exist. Was it added to the motor config file?", name.c_str());
@@ -86,11 +86,11 @@ void InterbotixRobotXS::robot_set_operating_modes(std::string const& cmd_type, s
 }
 
 /// @brief Helper function used to set the operating mode for a single motor
-/// @param name - desired motor name
-/// @param mode - desired operating mode (either 'position', 'linear_position', 'ext_position', 'velocity', 'pwm', 'current', or 'current_based_position')
-/// @param profile_type - set to 'velocity' for a Velocity-based Profile or 'time' for a Time-based Profile (modifies Bit 2 of the 'Drive_Mode' register)
-/// @param profile_velocity - passthrough to the Profile_Velocity register on the motor
-/// @param profile_acceleration - passthrough to the Profile_Acceleration register on the motor
+/// @param name desired motor name
+/// @param mode desired operating mode (either 'position', 'linear_position', 'ext_position', 'velocity', 'pwm', 'current', or 'current_based_position')
+/// @param profile_type set to 'velocity' for a Velocity-based Profile or 'time' for a Time-based Profile (modifies Bit 2 of the 'Drive_Mode' register)
+/// @param profile_velocity passthrough to the Profile_Velocity register on the motor
+/// @param profile_acceleration passthrough to the Profile_Acceleration register on the motor
 void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, std::string const& mode, std::string const& profile_type, int32_t profile_velocity, int32_t profile_acceleration)
 {
   for (auto const& joint_name:sister_map[name])
@@ -129,7 +129,6 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Velocity", profile_velocity);
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Profile_Acceleration", profile_acceleration);
       RCLCPP_DEBUG(this->get_logger(), "ID: %d, set extposcontrolmode, pv=%i, pa=%i.", motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
-
     }
     else if (mode == "velocity")
     {
@@ -171,9 +170,9 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
 }
 
 /// @brief Torque On/Off a specific group of motors or a single motor
-/// @param cmd_type - set to 'group' if torquing off a group of motors or 'single' if torquing off a single motor
-/// @param name - desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
-/// @param enable - set to True to torque on or False to torque off
+/// @param cmd_type set to 'group' if torquing off a group of motors or 'single' if torquing off a single motor
+/// @param name desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
+/// @param enable set to True to torque on or False to torque off
 void InterbotixRobotXS::robot_torque_enable(std::string const& cmd_type, std::string const& name, bool const& enable)
 {
   if (cmd_type == "group" && group_map.count(name) > 0)
@@ -196,10 +195,10 @@ void InterbotixRobotXS::robot_torque_enable(std::string const& cmd_type, std::st
 }
 
 /// @brief Reboot a specific group of motors or a single motor
-/// @param cmd_type - set to 'group' if rebooting a group of motors or 'single' if rebooting a single motor
-/// @param name - desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
-/// @param torque_enable - set to True to torque on or False to torque off after rebooting
-/// @param smart_reboot - set to True to only reboot motor(s) in a specified group that have gone into an error state
+/// @param cmd_type set to 'group' if rebooting a group of motors or 'single' if rebooting a single motor
+/// @param name desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
+/// @param torque_enable set to True to torque on or False to torque off after rebooting
+/// @param smart_reboot set to True to only reboot motor(s) in a specified group that have gone into an error state
 void InterbotixRobotXS::robot_reboot_motors(std::string const& cmd_type, std::string const& name, bool const& enable, bool const& smart_reboot)
 {
   std::vector<std::string> joints_to_torque;
@@ -241,9 +240,9 @@ void InterbotixRobotXS::robot_reboot_motors(std::string const& cmd_type, std::st
 }
 
 /// @brief Command a desired group of motors with the specified commands
-/// @param name - desired motor group name
-/// @param commands - vector of commands (order matches the order specified in the 'groups' section in the motor config file)
-/// @details - commands are processed differently based on the operating mode specified for the motor group
+/// @param name desired motor group name
+/// @param commands vector of commands (order matches the order specified in the 'groups' section in the motor config file)
+/// @details commands are processed differently based on the operating mode specified for the motor group
 void InterbotixRobotXS::robot_write_commands(std::string const& name, std::vector<float> commands)
 {
   std::string mode = group_map[name].mode;
@@ -292,9 +291,9 @@ void InterbotixRobotXS::robot_write_commands(std::string const& name, std::vecto
 }
 
 /// @brief Command a desired motor with the specified command
-/// @param name - desired motor name
-/// @param command - motor command
-/// @details - the command is processed differently based on the operating mode specified for the motor
+/// @param name desired motor name
+/// @param command motor command
+/// @details the command is processed differently based on the operating mode specified for the motor
 void InterbotixRobotXS::robot_write_joint_command(std::string const& name, float command)
 {
   std::string mode = motor_map[name].mode;
@@ -325,9 +324,9 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const& name, float
 }
 
 /// @brief Set motor firmware PID gains
-/// @param cmd_type - set to 'group' if changing the PID gains for a group of motors or 'single' if changing the PID gains for a single motor
-/// @param name - desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
-/// @param gains - vector containing the desired PID gains - order is as shown in the function
+/// @param cmd_type set to 'group' if changing the PID gains for a group of motors or 'single' if changing the PID gains for a single motor
+/// @param name desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
+/// @param gains vector containing the desired PID gains - order is as shown in the function
 void InterbotixRobotXS::robot_set_motor_pid_gains(std::string const& cmd_type, std::string const& name, std::vector<int32_t> const& gains)
 {
   std::vector<std::string> names;
@@ -358,9 +357,9 @@ void InterbotixRobotXS::robot_set_motor_pid_gains(std::string const& cmd_type, s
 }
 
 /// @brief Set a register value to multiple motors
-/// @param cmd_type - set to 'group' if setting register values for a group of motors or 'single' if setting a single register value
-/// @param name - desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
-/// @param value - desired register value
+/// @param cmd_type set to 'group' if setting register values for a group of motors or 'single' if setting a single register value
+/// @param name desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
+/// @param value desired register value
 void InterbotixRobotXS::robot_set_motor_registers(std::string const& cmd_type, std::string const& name, std::string const& reg, int32_t const& value)
 {
   std::vector<std::string> names;
@@ -377,9 +376,9 @@ void InterbotixRobotXS::robot_set_motor_registers(std::string const& cmd_type, s
 }
 
 /// @brief Get a register value from multiple motors
-/// @param cmd_type - set to 'group' if getting register values from a group of motors or 'single' if getting a single register value
-/// @param name - desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
-/// @param values [out] - vector of register values
+/// @param cmd_type set to 'group' if getting register values from a group of motors or 'single' if getting a single register value
+/// @param name desired motor group name if cmd_type is set to 'group' or the desired motor name if cmd_type is set to 'single'
+/// @param values [out] vector of register values
 void InterbotixRobotXS::robot_get_motor_registers(std::string const& cmd_type, std::string const& name, std::string const& reg, std::vector<int32_t> &values)
 {
   std::vector<std::string> names;
@@ -418,10 +417,10 @@ void InterbotixRobotXS::robot_get_motor_registers(std::string const& cmd_type, s
 }
 
 /// @brief Get states for a group of joints
-/// @param name - desired joint group name
-/// @param positions [out] - vector of current joint positions [rad]
-/// @param velocities [out] - vector of current joint velocities [rad/s]
-/// @param effort [out] - vector of current joint effort [mA]
+/// @param name desired joint group name
+/// @param positions [out] vector of current joint positions [rad]
+/// @param velocities [out] vector of current joint velocities [rad/s]
+/// @param effort [out] vector of current joint effort [mA]
 void InterbotixRobotXS::robot_get_joint_states(std::string const& name, std::vector<float> *positions, std::vector<float> *velocities, std::vector<float> *effort)
 {
   for (auto const& joint_name : group_map[name].joint_names)
@@ -434,10 +433,10 @@ void InterbotixRobotXS::robot_get_joint_states(std::string const& name, std::vec
 }
 
 /// @brief Get states for a single joint
-/// @param name - desired joint name
-/// @param position [out] - current joint position [rad]
-/// @param velocity [out] - current joint velocity [rad/s]
-/// @param effort [out] - current joint effort [mA]
+/// @param name desired joint name
+/// @param position [out] current joint position [rad]
+/// @param velocity [out] current joint velocity [rad/s]
+/// @param effort [out] current joint effort [mA]
 void InterbotixRobotXS::robot_get_joint_state(std::string const& name, float *position, float *velocity, float *effort)
 {
   if (position) *position = joint_states.position.at(js_index_map[name]);
@@ -447,9 +446,9 @@ void InterbotixRobotXS::robot_get_joint_state(std::string const& name, float *po
 }
 
 /// @brief Converts a desired linear distance between two gripper fingers into an angular position
-/// @param name - name of the gripper servo to command
-/// @param linear_position - desired distance [m] between the two gripper fingers
-/// @param <float> [out] - angular position [rad] that achieves the desired linear distance
+/// @param name name of the gripper servo to command
+/// @param linear_position desired distance [m] between the two gripper fingers
+/// @return <float> angular position [rad] that achieves the desired linear distance
 float InterbotixRobotXS::robot_convert_linear_position_to_radian(std::string const& name, float const& linear_position)
 {
   float half_dist = linear_position / 2.0;
@@ -460,9 +459,9 @@ float InterbotixRobotXS::robot_convert_linear_position_to_radian(std::string con
 }
 
 /// @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
-/// @param name - name of the gripper sevo to command
-/// @param angular_position - desired gripper angular position [rad]
-/// @param <float> [out] - linear position [m] from a gripper finger to the center of the gripper servo horn
+/// @param name name of the gripper sevo to command
+/// @param angular_position desired gripper angular position [rad]
+/// @return <float> linear position [m] from a gripper finger to the center of the gripper servo horn
 float InterbotixRobotXS::robot_convert_angular_position_to_linear(std::string const& name, float const& angular_position)
 {
   float arm_length = gripper_map[name].arm_length;
@@ -474,7 +473,7 @@ float InterbotixRobotXS::robot_convert_angular_position_to_linear(std::string co
 }
 
 /// @brief Loads a robot-specific 'motor_configs' yaml file and populates class variables with its contents
-/// @param <bool> [out] - True if the motor configs were successfully retrieved; False otherwise
+/// @return <bool> True if the motor configs were successfully retrieved; False otherwise
 bool InterbotixRobotXS::robot_get_motor_configs(void)
 {
   std::string motor_configs_file, mode_configs_file;
@@ -499,10 +498,11 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   try
   {
     mode_configs = YAML::LoadFile(mode_configs_file.c_str());
+    RCLCPP_INFO(this->get_logger(), "Successfully retrieved mode configs from '%s'.", mode_configs_file.c_str());
   }
   catch (YAML::BadFile &error)
   {
-    RCLCPP_ERROR(this->get_logger(), "Motor Config file was not found or has a bad format. Shutting down...");
+    RCLCPP_ERROR(this->get_logger(), "Mode Config file was not found or has a bad format. Shutting down...");
     RCLCPP_ERROR(this->get_logger(), "YAML Error: '%s'", error.what());
     return false;
   }
@@ -616,24 +616,24 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   pub_states = pub_configs["publish_states"].as<bool>(true);
   js_topic = pub_configs["topic_name"].as<std::string>("joint_states");
 
-  RCLCPP_INFO(this->get_logger(), "Successfully retrieved motor configs from %s.", motor_configs_file.c_str());
+  RCLCPP_INFO(this->get_logger(), "Successfully retrieved motor configs from '%s'.", motor_configs_file.c_str());
   return true;
 }
 
 /// @brief Initializes the port to communicate with the Dynamixel servos
-/// @param <bool> [out] - True if the port was successfully opened; False otherwise
+/// @return <bool> True if the port was successfully opened; False otherwise
 bool InterbotixRobotXS::robot_init_port(void)
 {
   if (!dxl_wb.init(port.c_str(), BAUDRATE))
   {
-    RCLCPP_ERROR(this->get_logger(), "Failed to open port at %s. Shutting down...", port.c_str());
+    RCLCPP_ERROR(this->get_logger(), "Failed to open port at '%s'. Shutting down...", port.c_str());
     return false;
   }
   return true;
 }
 
 /// @brief Pings all motors to make sure they can be found
-/// @param <bool> [out] - True if all motors were found; False otherwise
+/// @return <bool> True if all motors were found; False otherwise
 bool InterbotixRobotXS::robot_ping_motors(void)
 {
   for (auto const& motor:motor_map)
@@ -656,7 +656,7 @@ bool InterbotixRobotXS::robot_ping_motors(void)
 }
 
 /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
-/// @param <bool> [out] - True if all register values were written successfully; False otherwise
+/// @return <bool> True if all register values were written successfully; False otherwise
 bool InterbotixRobotXS::robot_load_motor_configs(void)
 {
   bool load_configs;
@@ -681,7 +681,7 @@ bool InterbotixRobotXS::robot_load_motor_configs(void)
 }
 
 /// @brief Retrieves information about 'Goal_XXX' and 'Present_XXX' registers
-/// @details - Info includes a register's name, address, and data length
+/// @details Info includes a register's name, address, and data length
 void InterbotixRobotXS::robot_init_controlItems(void)
 {
   uint8_t motor_id = motor_map.begin()->second.motor_id;
@@ -736,8 +736,8 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   control_items["Present_Current"] = present_current;
 }
 
-  /// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors simultaneously
-void InterbotixRobotXS::robot_init_SDK_handlers(void)
+/// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors simultaneously
+void InterbotixRobotXS::robot_init_workbench_handlers(void)
 {
   if (!dxl_wb.addSyncWriteHandler(control_items["Goal_Position"]->address, control_items["Goal_Position"]->data_length))
     RCLCPP_ERROR(this->get_logger(), "Failed to add SyncWriteHandler for Goal_Position.");
@@ -865,8 +865,8 @@ void InterbotixRobotXS::robot_init_timers(void)
   using namespace std::chrono_literals;
   if (timer_hz != 0)
   {
-    // create a timer that updates the joint states with a period of 1/timer_hz
-    std::chrono::milliseconds update_rate_in_ms = std::chrono::milliseconds(int(1.0/(timer_hz)*1000.0));
+    // timer that updates the joint states with a period of 1/timer_hz
+    std::chrono::nanoseconds update_rate_in_ms = std::chrono::nanoseconds(int(1.0/(timer_hz)*1000000000.0));
     tmr_joint_states = this->create_wall_timer(
       update_rate_in_ms, 
       std::bind(&InterbotixRobotXS::robot_update_joint_states,
@@ -887,24 +887,24 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
 }
 
 /// @brief ROS Subscriber callback function to command a group of joints
-/// @param msg - JointGroupCommand message dictating the joint group to command along with the actual commands
-/// @details - refer to the message definition for details
+/// @param msg JointGroupCommand message dictating the joint group to command along with the actual commands
+/// @details refer to the message definition for details
 void InterbotixRobotXS::robot_sub_command_group(const JointGroupCommand::SharedPtr msg)
 {
   robot_write_commands(msg->name, msg->cmd);
 }
 
 /// @brief ROS Subscriber callback function to command a single joint
-/// @param msg - JointSingleCommand message dictating the joint to command along with the actual command
-/// @details - refer to the message definition for details
+/// @param msg JointSingleCommand message dictating the joint to command along with the actual command
+/// @details refer to the message definition for details
 void InterbotixRobotXS::robot_sub_command_single(const JointSingleCommand::SharedPtr msg)
 {
   robot_write_joint_command(msg->name, msg->cmd);
 }
 
 /// @brief ROS Subscriber callback function to command a joint trajectory
-/// @param msg - JointTrajectoryCommand message dictating the joint(s) to command along with the desired trajectory
-/// @details - refer to the message definition for details
+/// @param msg JointTrajectoryCommand message dictating the joint(s) to command along with the desired trajectory
+/// @details refer to the message definition for details
 void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::SharedPtr msg)
 {
   using namespace std::chrono_literals;
@@ -949,9 +949,10 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
 }
 
 /// @brief ROS Service to torque the joints on the robot on/off
-/// @param req - TorqueEnable service message request
-/// @param res [out] - TorqueEnable service message response [unused]
-/// @details - refer to the service definition for details
+/// @param request_header service request header [unused]
+/// @param req TorqueEnable service message request
+/// @param res [out] TorqueEnable service message response [unused]
+/// @details refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_torque_enable(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<TorqueEnable::Request> req, std::shared_ptr<TorqueEnable::Response> res)
 {
   (void)request_header;
@@ -963,9 +964,10 @@ bool InterbotixRobotXS::robot_srv_torque_enable(const std::shared_ptr<rmw_reques
 }
 
 /// @brief ROS Service to reboot the motors on the robot
-/// @param req - Reboot service message request
+/// @param request_header service request header [unused]
+/// @param req Reboot service message request
 /// @param res [out] - Reboot service message response [unused]
-/// @details - refer to the service definition for details
+/// @details refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_reboot_motors(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<Reboot::Request> req, std::shared_ptr<Reboot::Response> res)
 {
   (void)request_header;
@@ -977,9 +979,10 @@ bool InterbotixRobotXS::robot_srv_reboot_motors(const std::shared_ptr<rmw_reques
 }
 
 /// @brief ROS Service that allows the user to get information about the robot
-/// @param req - RobotInfo service message request
-/// @param res [out] - RobotInfo service message response
-/// @details - refer to the service definition for details
+/// @param request_header service request header [unused]
+/// @param req RobotInfo service message request
+/// @param res [out] RobotInfo service message response
+/// @details refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_get_robot_info(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<RobotInfo::Request> req, std::shared_ptr<RobotInfo::Response> res)
 {
   (void)request_header;
@@ -1035,9 +1038,10 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(const std::shared_ptr<rmw_reque
 }
 
 /// @brief ROS Service that allows the user to change operating modes
-/// @param req - OperatingModes service message request
-/// @param res [out] - OperatingModes service message response [unused]
-/// @details - refer to the service definition for details
+/// @param request_header service request header [unused]
+/// @param req OperatingModes service message request
+/// @param res [out] OperatingModes service message response [unused]
+/// @details refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_set_operating_modes(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<OperatingModes::Request> req, std::shared_ptr<OperatingModes::Response> res)
 {
   (void)request_header;
@@ -1049,9 +1053,10 @@ bool InterbotixRobotXS::robot_srv_set_operating_modes(const std::shared_ptr<rmw_
 }
 
 /// @brief ROS Service that allows the user to set the motor firmware PID gains
-/// @param req - MotorGains service message request
-/// @param res [out] - MotorGains service message response [unused]
-/// @details - refer to the service defintion for details
+/// @param request_header service request header [unused]
+/// @param req MotorGains service message request
+/// @param res [out] MotorGains service message response [unused]
+/// @details refer to the service defintion for details
 bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<MotorGains::Request> req, std::shared_ptr<MotorGains::Response> res)
 {
   (void)request_header;
@@ -1064,9 +1069,10 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(const std::shared_ptr<rmw_
 }
 
 /// @brief ROS Service that allows the user to change a specific register to a specific value for multiple motors
-/// @param req - RegisterValues service message request
-/// @param res [out] - RegisterValues service message response [unused]
-/// @details - refer to the service definition for details
+/// @param request_header service request header [unused]
+/// @param req RegisterValues service message request
+/// @param res [out] RegisterValues service message response [unused]
+/// @details refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_set_motor_registers(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<RegisterValues::Request> req, std::shared_ptr<RegisterValues::Response> res)
 {
   (void)request_header;
@@ -1078,9 +1084,10 @@ bool InterbotixRobotXS::robot_srv_set_motor_registers(const std::shared_ptr<rmw_
 }
 
 /// @brief ROS Service that allows the user to read a specific register on multiple motors
-/// @param req - RegisterValues service message request
-/// @param res [out] - RegisterValues service message response
-/// @details - refer to the service definition for details
+/// @param request_header service request header [unused]
+/// @param req RegisterValues service message request
+/// @param res [out] RegisterValues service message response
+/// @details refer to the service definition for details
 bool InterbotixRobotXS::robot_srv_get_motor_registers(const std::shared_ptr<rmw_request_id_t> request_header, std::shared_ptr<RegisterValues::Request> req, std::shared_ptr<RegisterValues::Response> res)
 {
   (void)request_header;

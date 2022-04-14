@@ -240,7 +240,7 @@ private:
   void robot_init_controlItems(void);
 
   /// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors simultaneously
-  void robot_init_SDK_handlers(void);
+  void robot_init_workbench_handlers(void);
 
   /// @brief Loads a 'mode_configs' yaml file containing desired operating modes and sets up the motors accordingly
   void robot_init_operating_modes(void);
