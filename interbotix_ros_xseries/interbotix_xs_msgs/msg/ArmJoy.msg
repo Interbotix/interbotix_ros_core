@@ -29,8 +29,8 @@ int8 WAIST_CCW = 11
 int8 WAIST_CW = 12
 
 # Gripper Control
-int8 GRIPPER_OPEN = 13
-int8 GRIPPER_CLOSE = 14
+int8 GRIPPER_RELEASE = 13
+int8 GRIPPER_GRASP = 14
 
 # Pose Control
 int8 HOME_POSE = 15
