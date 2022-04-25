@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.5)
 project(interbotix_xs_sdk)
 
-if (NOT CMAKE_CXX_STANDARD)
+if(NOT CMAKE_CXX_STANDARD)
   set(CMAKE_CXX_STANDARD 14)
 endif()
 
-if (CMAKE_COMPILER_IS_GNUXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+if(CMAKE_COMPILER_IS_GNUXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
@@ -18,9 +18,10 @@ find_package(sensor_msgs REQUIRED)
 find_package(urdf REQUIRED)
 find_package(interbotix_xs_msgs REQUIRED)
 find_package(yaml-cpp REQUIRED)
+
 include_directories(include)
 
-set (ROS_DEPENDENCIES 
+set(ROS_DEPENDENCIES
   ament_index_cpp
   rclcpp
   dynamixel_workbench_toolbox
@@ -42,18 +43,24 @@ target_link_libraries(xs_sdk yaml-cpp)
 #############
 ## Install ##
 #############
-install(TARGETS
-  xs_sdk
-  DESTINATION lib/${PROJECT_NAME})
 
-## Mark executable scripts (Python etc.) for installation
-## in contrast to setup.py, you can choose the destination
-install(PROGRAMS
-  scripts/xs_sdk_sim
+install(
+  TARGETS xs_sdk
   DESTINATION lib/${PROJECT_NAME}
 )
-install(DIRECTORY
-  config
+
+install(
+  PROGRAMS scripts/xs_sdk_sim
+  DESTINATION lib/${PROJECT_NAME}
+)
+install(
+  DIRECTORY config
   DESTINATION share/${PROJECT_NAME}/
 )
+
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
 ament_package()
