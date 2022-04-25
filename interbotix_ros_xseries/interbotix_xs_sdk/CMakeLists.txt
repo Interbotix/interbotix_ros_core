@@ -50,7 +50,7 @@ install(
 )
 
 install(
-  PROGRAMS scripts/xs_sdk_sim
+  PROGRAMS scripts/xs_sdk_sim.py
   DESTINATION lib/${PROJECT_NAME}
 )
 
