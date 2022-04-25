@@ -53,14 +53,14 @@ InterbotixRobotXS::InterbotixRobotXS(
 
   if (!robot_ping_motors()) {
     success = false;
-    RCLCPP_ERROR(this->get_logger(), "Failed to find all motors. Shutting down...");
+    RCLCPP_ERROR(LOGGER, "Failed to find all motors. Shutting down...");
     return;
   }
 
   if (!robot_load_motor_configs()) {
     success = false;
     RCLCPP_ERROR(
-      this->get_logger(), "Failed to write configurations to all motors. Shutting down...");
+      LOGGER, "Failed to write configurations to all motors. Shutting down...");
     return;
   }
 
@@ -72,7 +72,7 @@ InterbotixRobotXS::InterbotixRobotXS(
   robot_init_services();
   robot_init_timers();
   robot_wait_for_joint_states();
-  RCLCPP_INFO(this->get_logger(), "Interbotix 'xs_sdk' node is up!");
+  RCLCPP_INFO(LOGGER, "Interbotix 'xs_sdk' node is up!");
 }
 
 /// @brief Destructor for the InterbotixRobotXS
@@ -107,7 +107,7 @@ void InterbotixRobotXS::robot_set_operating_modes(
     group_map[name].mode = mode;
     group_map[name].profile_type = profile_type;
     RCLCPP_INFO(
-      this->get_logger(),
+      LOGGER,
       "The operating mode for the '%s' group was changed to '%s' with profile type '%s'.",
       name.c_str(), mode.c_str(), profile_type.c_str());
   } else if (cmd_type == CMD_TYPE_SINGLE && motor_map.count(name) > 0) {
@@ -118,7 +118,7 @@ void InterbotixRobotXS::robot_set_operating_modes(
       profile_velocity,
       profile_acceleration);
     RCLCPP_INFO(
-      this->get_logger(),
+      LOGGER,
       "The operating mode for the '%s' joint was changed to '%s' with profile type '%s'.",
       name.c_str(), mode.c_str(), profile_type.c_str());
   } else if ( // NOLINT https://github.com/ament/ament_lint/issues/158
@@ -126,12 +126,12 @@ void InterbotixRobotXS::robot_set_operating_modes(
     (cmd_type == CMD_TYPE_SINGLE && motor_map.count(name) == 0))
   {
     RCLCPP_WARN(
-      this->get_logger(),
+      LOGGER,
       "The '%s' joint/group does not exist. Was it added to the motor config file?",
       name.c_str());
   } else {
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Invalid command for argument 'cmd_type' while setting operating mode.");
   }
 }
@@ -146,7 +146,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
   // torque off sister servos
   for (auto const & joint_name : sister_map[name]) {
     dxl_wb.torque(motor_map[joint_name].motor_id, false);
-    RCLCPP_DEBUG(this->get_logger(), "ID: %d, torqued off.", motor_map[joint_name].motor_id);
+    RCLCPP_DEBUG(LOGGER, "ID: %d, torqued off.", motor_map[joint_name].motor_id);
   }
 
   for (auto const & motor_name : shadow_map[name]) {
@@ -154,7 +154,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
     // read drive mode for each shadow
     dxl_wb.itemRead(motor_map[motor_name].motor_id, "Drive_Mode", &drive_mode);
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, read Drive_Mode %d.",
       motor_map[motor_name].motor_id, drive_mode);
     // The 2nd (0x04) bit of the Drive_Mode register sets Profile Configuration
@@ -172,13 +172,13 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
     if (drive_mode <= 1 && profile_type == PROFILE_TIME) {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode_bitset.to_ulong());
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, write Drive_Mode %ld.",
         motor_map[motor_name].motor_id, drive_mode_bitset.to_ulong());
     } else if (drive_mode >= 4 && profile_type == PROFILE_VELOCITY) {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode_bitset.to_ulong());
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, write Drive_Mode %ld.",
         motor_map[motor_name].motor_id, drive_mode_bitset.to_ulong());
     }
@@ -196,7 +196,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
         "Profile_Acceleration",
         profile_acceleration);
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, set poscontrolmode, pv=%i, pa=%i.",
         motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
     } else if (mode == MODE_EXT_POSITION) {
@@ -213,7 +213,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
         "Profile_Acceleration",
         profile_acceleration);
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, set extposcontrolmode, pv=%i, pa=%i.",
         motor_map[motor_name].motor_id, profile_velocity, profile_acceleration);
     } else if (mode == MODE_VELOCITY) {
@@ -226,7 +226,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
         "Profile_Acceleration",
         profile_acceleration);
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, set velcontrolmode, pa=%i.",
         motor_map[motor_name].motor_id, profile_acceleration);
     } else if (mode == MODE_PWM) {
@@ -234,7 +234,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
       dxl_wb.setPWMControlMode(
         motor_map[motor_name].motor_id);
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, set pwmcontrolmode.",
         motor_map[motor_name].motor_id);
     } else if (mode == MODE_CURRENT) {
@@ -242,7 +242,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
       dxl_wb.setCurrentControlMode(
         motor_map[motor_name].motor_id);
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, set currentcontrolmode",
         motor_map[motor_name].motor_id);
     } else if (mode == MODE_CURRENT_BASED_POSITION) {
@@ -250,13 +250,13 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
       dxl_wb.setCurrentBasedPositionControlMode(
         motor_map[motor_name].motor_id);
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, set currentcontrolmode",
         motor_map[motor_name].motor_id);
     } else {
       // mode was invalid
       RCLCPP_ERROR(
-        this->get_logger(),
+        LOGGER,
         "Invalid command for argument 'mode' while setting the operating mode for the %s motor.",
         motor_name.c_str());
       continue;
@@ -270,7 +270,7 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
   for (auto const & joint_name : sister_map[name]) {
     dxl_wb.torque(motor_map[joint_name].motor_id, true);
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, torqued on.",
       motor_map[joint_name].motor_id);
   }
@@ -290,9 +290,9 @@ void InterbotixRobotXS::robot_torque_enable(
 
     // log torque action
     if (enable) {
-      RCLCPP_INFO(this->get_logger(), "The '%s' group was torqued on.", name.c_str());
+      RCLCPP_INFO(LOGGER, "The '%s' group was torqued on.", name.c_str());
     } else {
-      RCLCPP_INFO(this->get_logger(), "The '%s' group was torqued off.", name.c_str());
+      RCLCPP_INFO(LOGGER, "The '%s' group was torqued off.", name.c_str());
     }
   } else if (cmd_type == CMD_TYPE_SINGLE && motor_map.count(name) > 0) {
     // single case
@@ -301,9 +301,9 @@ void InterbotixRobotXS::robot_torque_enable(
 
     // log torque action
     if (enable) {
-      RCLCPP_INFO(this->get_logger(), "The '%s' joint was torqued on.", name.c_str());
+      RCLCPP_INFO(LOGGER, "The '%s' joint was torqued on.", name.c_str());
     } else {
-      RCLCPP_INFO(this->get_logger(), "The '%s' joint was torqued off.", name.c_str());
+      RCLCPP_INFO(LOGGER, "The '%s' joint was torqued off.", name.c_str());
     }
   } else if ( // NOLINT https://github.com/ament/ament_lint/issues/158
     (cmd_type == CMD_TYPE_GROUP && group_map.count(name) == 0) ||
@@ -311,13 +311,13 @@ void InterbotixRobotXS::robot_torque_enable(
   {
     // invalid name
     RCLCPP_WARN(
-      this->get_logger(),
+      LOGGER,
       "The '%s' joint/group does not exist. Was it added to the motor config file?",
       name.c_str());
   } else {
     // inavlid cmd_type
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Invalid command for argument 'cmd_type' while torquing joints.");
   }
 }
@@ -347,20 +347,20 @@ void InterbotixRobotXS::robot_reboot_motors(
       }
       // reboot the servo
       dxl_wb.reboot(motor_map[joint_name].motor_id);
-      RCLCPP_INFO(this->get_logger(), "The '%s' joint was rebooted.", joint_name.c_str());
+      RCLCPP_INFO(LOGGER, "The '%s' joint was rebooted.", joint_name.c_str());
       if (enable) {
         // add servo to joints_to_torque if enabled
         joints_to_torque.push_back(joint_name);
       }
     }
     if (!smart_reboot) {
-      RCLCPP_INFO(this->get_logger(), "The '%s' group was rebooted.", name.c_str());
+      RCLCPP_INFO(LOGGER, "The '%s' group was rebooted.", name.c_str());
     }
   } else if (cmd_type == CMD_TYPE_SINGLE && motor_map.count(name) > 0) {
     // single case
     // reboot the single servo
     dxl_wb.reboot(motor_map[name].motor_id);
-    RCLCPP_INFO(this->get_logger(), "The '%s' joint was rebooted.", name.c_str());
+    RCLCPP_INFO(LOGGER, "The '%s' joint was rebooted.", name.c_str());
     if (enable) {
       // add servo to joints_to_torque if enabled
       joints_to_torque.push_back(name);
@@ -371,13 +371,13 @@ void InterbotixRobotXS::robot_reboot_motors(
   {
     // invalid name
     RCLCPP_WARN(
-      this->get_logger(),
+      LOGGER,
       "The '%s' joint/group does not exist. Was it added to the motor config file?",
       name.c_str());
   } else {
     // invalid cmd_type
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Invalid command for argument 'cmd_type' while rebooting motors.");
   }
 
@@ -410,7 +410,7 @@ void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vect
       dynamixel_commands[i] = dxl_wb.convertRadian2Value(
         group_map[name].joint_ids.at(i), commands.at(i));
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, writing %s command %d.",
         group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
     }
@@ -425,7 +425,7 @@ void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vect
       dynamixel_commands[i] = dxl_wb.convertVelocity2Value(
         group_map[name].joint_ids.at(i), commands.at(i));
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, writing %s command %d.",
         group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
     }
@@ -439,7 +439,7 @@ void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vect
       // translate from current to command value
       dynamixel_commands[i] = dxl_wb.convertCurrent2Value(commands.at(i));
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, writing %s command %d.",
         group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
     }
@@ -452,7 +452,7 @@ void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vect
     for (size_t i{0}; i < commands.size(); i++) {
       dynamixel_commands[i] = int32_t(commands.at(i));
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, writing %s command %d.",
         group_map[name].joint_ids.at(i), mode.c_str(), dynamixel_commands[i]);
     }
@@ -463,7 +463,7 @@ void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vect
   } else {
     // invalid mode
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Invalid command for argument 'mode' while commanding joint group.");
   }
 }
@@ -483,7 +483,7 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const & name, floa
       command = robot_convert_linear_position_to_radian(name, command);
     }
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, writing %s command %f.",
       motor_map[name].motor_id, mode.c_str(), command);
     // write position command
@@ -491,7 +491,7 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const & name, floa
   } else if (mode == MODE_VELOCITY) {
     // position velocity case
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, writing %s command %f.",
       motor_map[name].motor_id, mode.c_str(), command);
     // write velocity command
@@ -499,7 +499,7 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const & name, floa
   } else if (mode == MODE_CURRENT) {
     // position current case
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, writing %s command %f.",
       motor_map[name].motor_id, mode.c_str(), command);
     // write current command
@@ -508,14 +508,14 @@ void InterbotixRobotXS::robot_write_joint_command(std::string const & name, floa
   } else if (mode == MODE_PWM) {
     // pwm current case
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, writing %s command %f.", motor_map[name].motor_id, mode.c_str(), command);
     // write pwm command
     dxl_wb.itemWrite(motor_map[name].motor_id, "Goal_PWM", int32_t(command));
   } else {
     // invalid mode
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Invalid command for argument 'mode' while commanding joint.");
   }
 }
@@ -537,14 +537,14 @@ void InterbotixRobotXS::robot_set_motor_pid_gains(
   for (auto const & name : names) {
     // write gains for each servo
     uint8_t id = motor_map[name].motor_id;
-    RCLCPP_DEBUG(this->get_logger(), "ID: %d, writing gains:", motor_map[name].motor_id);
-    RCLCPP_DEBUG(this->get_logger(), "        Pos_P: %i", gains.at(0));
-    RCLCPP_DEBUG(this->get_logger(), "        Pos_I: %i", gains.at(1));
-    RCLCPP_DEBUG(this->get_logger(), "        Pos_D: %i", gains.at(2));
-    RCLCPP_DEBUG(this->get_logger(), "        FF_1: %i", gains.at(3));
-    RCLCPP_DEBUG(this->get_logger(), "        FF_2: %i", gains.at(4));
-    RCLCPP_DEBUG(this->get_logger(), "        Vel_P: %i", gains.at(5));
-    RCLCPP_DEBUG(this->get_logger(), "        Vel_I: %i", gains.at(6));
+    RCLCPP_DEBUG(LOGGER, "ID: %d, writing gains:", motor_map[name].motor_id);
+    RCLCPP_DEBUG(LOGGER, "        Pos_P: %i", gains.at(0));
+    RCLCPP_DEBUG(LOGGER, "        Pos_I: %i", gains.at(1));
+    RCLCPP_DEBUG(LOGGER, "        Pos_D: %i", gains.at(2));
+    RCLCPP_DEBUG(LOGGER, "        FF_1: %i", gains.at(3));
+    RCLCPP_DEBUG(LOGGER, "        FF_2: %i", gains.at(4));
+    RCLCPP_DEBUG(LOGGER, "        Vel_P: %i", gains.at(5));
+    RCLCPP_DEBUG(LOGGER, "        Vel_I: %i", gains.at(6));
     dxl_wb.itemWrite(id, "Position_P_Gain", gains.at(0));
     dxl_wb.itemWrite(id, "Position_I_Gain", gains.at(1));
     dxl_wb.itemWrite(id, "Position_D_Gain", gains.at(2));
@@ -573,7 +573,7 @@ void InterbotixRobotXS::robot_set_motor_registers(
   for (auto const & name : names) {
     // write register for each servo
     RCLCPP_DEBUG(
-      this->get_logger(),
+      LOGGER,
       "ID: %d, writing reg: %s, value: %d.",
       motor_map[name].motor_id, reg.c_str(), value);
     dxl_wb.itemWrite(motor_map[name].motor_id, reg.c_str(), value);
@@ -599,7 +599,7 @@ void InterbotixRobotXS::robot_get_motor_registers(
   const ControlItem * goal_reg = dxl_wb.getItemInfo(motor_map[names.front()].motor_id, reg.c_str());
   if (goal_reg == NULL) {
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Could not get '%s' Item Info. Did you spell the register name correctly?",
       reg.c_str());
     return;
@@ -610,11 +610,11 @@ void InterbotixRobotXS::robot_get_motor_registers(
     const char * log;
     // read register for each servo and check result for success
     if (!dxl_wb.itemRead(motor_map[name].motor_id, reg.c_str(), &value, &log)) {
-      RCLCPP_ERROR(this->get_logger(), "%s", log);
+      RCLCPP_ERROR(LOGGER, "%s", log);
       return;
     } else {
       RCLCPP_DEBUG(
-        this->get_logger(),
+        LOGGER,
         "ID: %d, reading reg: %s, value: %d.", motor_map[name].motor_id, reg.c_str(), value);
     }
 
@@ -646,7 +646,7 @@ void InterbotixRobotXS::robot_get_joint_states(
     if (effort) {
       effort->push_back(joint_states.effort.at(js_index_map[joint_name]));
     }
-    RCLCPP_DEBUG(this->get_logger(), "ID: %ld, got joint state.", js_index_map[joint_name]);
+    RCLCPP_DEBUG(LOGGER, "ID: %ld, got joint state.", js_index_map[joint_name]);
   }
 }
 
@@ -666,7 +666,7 @@ void InterbotixRobotXS::robot_get_joint_state(
   if (effort) {
     *effort = joint_states.effort.at(js_index_map[name]);
   }
-  RCLCPP_DEBUG(this->get_logger(), "ID: %ld, got joint state.", js_index_map[name]);
+  RCLCPP_DEBUG(LOGGER, "ID: %ld, got joint state.", js_index_map[name]);
 }
 
 float InterbotixRobotXS::robot_convert_linear_position_to_radian(
@@ -709,15 +709,15 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   } catch (YAML::BadFile & error) {
     // if file is not found or a bad format, shut down
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Motor Config file was not found or has a bad format. Shutting down...");
-    RCLCPP_ERROR(this->get_logger(), "YAML Error: '%s'", error.what());
+    RCLCPP_ERROR(LOGGER, "YAML Error: '%s'", error.what());
     return false;
   }
 
   if (motor_configs.IsNull()) {
     // if motor_configs is not found or empty, shut down
-    RCLCPP_ERROR(this->get_logger(), "Motor Config file was not found. Shutting down...");
+    RCLCPP_ERROR(LOGGER, "Motor Config file was not found. Shutting down...");
     return false;
   }
 
@@ -727,16 +727,16 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     // try to load mode_configs yaml file
     mode_configs = YAML::LoadFile(mode_configs_file.c_str());
     RCLCPP_INFO(
-      this->get_logger(),
+      LOGGER,
       "Successfully retrieved mode configs from '%s'.",
       mode_configs_file.c_str());
   } catch (YAML::BadFile & error) {
     // if file is not found or a bad format, shut down
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Mode Config file was not found or has a bad format. Shutting down...");
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "YAML Error: '%s'",
       error.what());
     return false;
@@ -744,7 +744,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 
   if (mode_configs.IsNull()) {
     // if mode_configs is not found or empty, use defaults
-    RCLCPP_INFO(this->get_logger(), "Mode Config file is empty.");
+    RCLCPP_INFO(LOGGER, "Mode Config file is empty.");
   }
 
   // use specified or default port
@@ -914,7 +914,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   js_topic = pub_configs["topic_name"].as<std::string>("joint_states");
 
   RCLCPP_INFO(
-    this->get_logger(),
+    LOGGER,
     "Successfully retrieved motor configs from '%s'.",
     motor_configs_file.c_str());
   return true;
@@ -926,7 +926,7 @@ bool InterbotixRobotXS::robot_init_port(void)
   if (!dxl_wb.init(port.c_str(), DEFAULT_BAUDRATE)) {
     // if the connection fails, shut down
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Failed to open port at '%s'. Shutting down...",
       port.c_str());
     return false;
@@ -943,13 +943,13 @@ bool InterbotixRobotXS::robot_ping_motors(void)
     if (!dxl_wb.ping(motor.second.motor_id, &model_number)) {
       // if any ping is unsuccessful, shut down
       RCLCPP_ERROR(
-        this->get_logger(),
+        LOGGER,
         "Can't find Dynamixel ID '%d',\tJoint Name : '%s'",
         motor.second.motor_id, motor.first.c_str());
       return false;
     } else {
       RCLCPP_INFO(
-        this->get_logger(),
+        LOGGER,
         "Found Dynamixel ID : %d,\tModel Number : %d,\tJoint Name : %s",
         motor.second.motor_id, model_number, motor.first.c_str());
     }
@@ -969,14 +969,14 @@ bool InterbotixRobotXS::robot_load_motor_configs(void)
     for (auto const & motor_info : motor_info_vec) {
       if (!dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value)) {
         RCLCPP_ERROR(
-          this->get_logger(),
+          LOGGER,
           "[xs_sdk] Failed to write value[%d] on items[%s] to [ID : %d]",
           motor_info.value, motor_info.reg.c_str(), motor_info.motor_id);
         return false;
       }
     }
   } else {
-    RCLCPP_INFO(this->get_logger(), "Skipping Load Configs...");
+    RCLCPP_INFO(LOGGER, "Skipping Load Configs...");
   }
   return true;
 }
@@ -987,7 +987,7 @@ void InterbotixRobotXS::robot_init_controlItems(void)
 
   const ControlItem * goal_position = dxl_wb.getItemInfo(motor_id, "Goal_Position");
   if (!goal_position) {
-    RCLCPP_ERROR(this->get_logger(), "Could not get 'Goal_Position' Item Info");
+    RCLCPP_ERROR(LOGGER, "Could not get 'Goal_Position' Item Info");
   }
 
   const ControlItem * goal_velocity = dxl_wb.getItemInfo(motor_id, "Goal_Velocity");
@@ -995,7 +995,7 @@ void InterbotixRobotXS::robot_init_controlItems(void)
     goal_velocity = dxl_wb.getItemInfo(motor_id, "Moving_Speed");
   }
   if (!goal_velocity) {
-    RCLCPP_ERROR(this->get_logger(), "Could not get 'Goal_Velocity' or 'Moving_Speed' Item Info");
+    RCLCPP_ERROR(LOGGER, "Could not get 'Goal_Velocity' or 'Moving_Speed' Item Info");
   }
 
   const ControlItem * goal_current = NULL;
@@ -1008,19 +1008,19 @@ void InterbotixRobotXS::robot_init_controlItems(void)
 
   if (!goal_current) {
     RCLCPP_INFO(
-      this->get_logger(),
+      LOGGER,
       "Could not get 'Goal_Current' Item Info. This message can be "
       "ignored if none of the robot's motors support current control.");
   }
 
   const ControlItem * goal_pwm = dxl_wb.getItemInfo(motor_id, "Goal_PWM");
   if (!goal_pwm) {
-    RCLCPP_ERROR(this->get_logger(), "Could not get 'Goal_PWM' Item Info");
+    RCLCPP_ERROR(LOGGER, "Could not get 'Goal_PWM' Item Info");
   }
 
   const ControlItem * present_position = dxl_wb.getItemInfo(motor_id, "Present_Position");
   if (!present_position) {
-    RCLCPP_ERROR(this->get_logger(), "Could not get 'Present_Position' Item Info");
+    RCLCPP_ERROR(LOGGER, "Could not get 'Present_Position' Item Info");
   }
 
   const ControlItem * present_velocity = dxl_wb.getItemInfo(motor_id, "Present_Velocity");
@@ -1029,7 +1029,7 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   }
   if (!present_velocity) {
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Could not get 'Present_Velocity' or 'Present_Speed' Item Info");
   }
 
@@ -1039,7 +1039,7 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   }
   if (!present_current) {
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "Could not get 'Present_Current' or 'Present_Load' Item Info");
   }
 
@@ -1059,14 +1059,14 @@ void InterbotixRobotXS::robot_init_workbench_handlers(void)
     !dxl_wb.addSyncWriteHandler(
       control_items["Goal_Position"]->address, control_items["Goal_Position"]->data_length))
   {
-    RCLCPP_ERROR(this->get_logger(), "Failed to add SyncWriteHandler for Goal_Position.");
+    RCLCPP_ERROR(LOGGER, "Failed to add SyncWriteHandler for Goal_Position.");
   }
 
   if (
     !dxl_wb.addSyncWriteHandler(
       control_items["Goal_Velocity"]->address, control_items["Goal_Velocity"]->data_length))
   {
-    RCLCPP_ERROR(this->get_logger(), "Failed to add SyncWriteHandler for Goal_Velocity.");
+    RCLCPP_ERROR(LOGGER, "Failed to add SyncWriteHandler for Goal_Velocity.");
   }
 
   // only add a SyncWriteHandler for 'Goal_Current' if the register actually exists!
@@ -1075,11 +1075,11 @@ void InterbotixRobotXS::robot_init_workbench_handlers(void)
       !dxl_wb.addSyncWriteHandler(
         control_items["Goal_Current"]->address, control_items["Goal_Current"]->data_length))
     {
-      RCLCPP_ERROR(this->get_logger(), "Failed to add SyncWriteHandler for Goal_Current.");
+      RCLCPP_ERROR(LOGGER, "Failed to add SyncWriteHandler for Goal_Current.");
     }
   } else {
     RCLCPP_INFO(
-      this->get_logger(),
+      LOGGER,
       "SyncWriteHandler for Goal_Current not added as it's not supported.");
   }
 
@@ -1087,7 +1087,7 @@ void InterbotixRobotXS::robot_init_workbench_handlers(void)
     !dxl_wb.addSyncWriteHandler(
       control_items["Goal_PWM"]->address, control_items["Goal_PWM"]->data_length))
   {
-    RCLCPP_ERROR(this->get_logger(), "Failed to add SyncWriteHandler for Goal_PWM.");
+    RCLCPP_ERROR(LOGGER, "Failed to add SyncWriteHandler for Goal_PWM.");
   }
 
   if (dxl_wb.getProtocolVersion() == 2.0f) {
@@ -1106,7 +1106,7 @@ void InterbotixRobotXS::robot_init_workbench_handlers(void)
       control_items["Present_Current"]->data_length + \
       2;
     if (!dxl_wb.addSyncReadHandler(start_address, read_length)) {
-      RCLCPP_ERROR(this->get_logger(), "Failed to add SyncReadHandler");
+      RCLCPP_ERROR(LOGGER, "Failed to add SyncReadHandler");
     }
   }
 }
@@ -1292,12 +1292,12 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
 {
   using namespace std::chrono_literals;
   if (execute_joint_traj) {
-    RCLCPP_WARN(this->get_logger(), "Trajectory rejected since joints are still moving.");
+    RCLCPP_WARN(LOGGER, "Trajectory rejected since joints are still moving.");
     return;
   }
 
   if (msg->traj.points.size() < 2) {
-    RCLCPP_WARN(this->get_logger(), "Trajectory has fewer than 2 points. Aborting...");
+    RCLCPP_WARN(LOGGER, "Trajectory has fewer than 2 points. Aborting...");
     return;
   }
 
@@ -1314,11 +1314,11 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
       float actual_state = joint_states.position.at(js_index_map[joint_names.at(i)]);
       if (!(fabs(expected_state - actual_state) < 0.01)) {
         RCLCPP_WARN(
-          this->get_logger(),
+          LOGGER,
           "The %s joint is not at the correct initial state.",
           joint_names.at(i).c_str());
         RCLCPP_WARN(
-          this->get_logger(),
+          LOGGER,
           "Expected state: %.2f, Actual State: %.2f.",
           expected_state, actual_state);
       }
@@ -1506,21 +1506,20 @@ void InterbotixRobotXS::robot_execute_trajectory()
 
   static size_t cntr = 1;
   RCLCPP_DEBUG(
-    this->get_logger(),
+    LOGGER,
     "Executing trajectory step %li/%li.",
     cntr, joint_traj_cmd->traj.points.size());
 
-  // check if end of trajectory has been reached
-  // if done, reset counter, set execution status bool to false, and cancel the
-  //  trajectory execution timer.
-  // if not done, cancel the timer (pseudo one-shot), and start another.
+  // check if end of trajectory has been reached if done, reset counter, set execution status bool
+  // to false, and cancel the trajectory execution timer. if not done, cancel the timer (pseudo
+  // one-shot), and start another.
   if (cntr == joint_traj_cmd->traj.points.size()) {
     if (!tmr_joint_traj->is_canceled()) {
       tmr_joint_traj->cancel();
     }
     execute_joint_traj = false;
     cntr = 1;
-    RCLCPP_DEBUG(this->get_logger(), "Reached end of trajectory.");
+    RCLCPP_DEBUG(LOGGER, "Reached end of trajectory.");
     return;
   } else {
     // cancel trajectory timer
@@ -1619,7 +1618,7 @@ void InterbotixRobotXS::robot_update_joint_states()
         all_ptr->joint_num,
         &log))
     {
-      RCLCPP_ERROR(this->get_logger(), "%s", log);
+      RCLCPP_ERROR(LOGGER, "%s", log);
     }
 
     // Gets present current of all servos
@@ -1632,7 +1631,7 @@ void InterbotixRobotXS::robot_update_joint_states()
         get_current.data(),
         &log))
     {
-      RCLCPP_ERROR(this->get_logger(), "%s", log);
+      RCLCPP_ERROR(LOGGER, "%s", log);
     }
 
     // Gets present velocity of all servos
@@ -1645,7 +1644,7 @@ void InterbotixRobotXS::robot_update_joint_states()
         get_velocity.data(),
         &log))
     {
-      RCLCPP_ERROR(this->get_logger(), "%s", log);
+      RCLCPP_ERROR(LOGGER, "%s", log);
     }
 
     // Gets present position of all servos
@@ -1658,7 +1657,7 @@ void InterbotixRobotXS::robot_update_joint_states()
         get_position.data(),
         &log))
     {
-      RCLCPP_ERROR(this->get_logger(), "%s", log);
+      RCLCPP_ERROR(LOGGER, "%s", log);
     }
 
     uint8_t index = 0;
@@ -1693,7 +1692,7 @@ void InterbotixRobotXS::robot_update_joint_states()
           get_all_data.data(),
           &log))
       {
-        RCLCPP_ERROR(this->get_logger(), "%s", log);
+        RCLCPP_ERROR(LOGGER, "%s", log);
       }
 
       int16_t effort_raw = DXL_MAKEWORD(get_all_data.at(4), get_all_data.at(5));
@@ -1741,7 +1740,7 @@ bool InterbotixRobotXS::robot_srv_validate(std::string cmd_type, std::string & n
     } else {
       // otherwise error and return false
       RCLCPP_ERROR(
-        this->get_logger(),
+        LOGGER,
         "Group '%s' does not exist. Was it added to the motor config file?",
         name.c_str());
       return false;
@@ -1753,7 +1752,7 @@ bool InterbotixRobotXS::robot_srv_validate(std::string cmd_type, std::string & n
     } else {
       // otherwise error and return false
       RCLCPP_ERROR(
-        this->get_logger(),
+        LOGGER,
         "Joint '%s' does not exist. Was it added to the motor config file?",
         name.c_str());
       return false;
@@ -1761,7 +1760,7 @@ bool InterbotixRobotXS::robot_srv_validate(std::string cmd_type, std::string & n
   } else {
     // if command type is invalid, error and return false
     RCLCPP_ERROR(
-      this->get_logger(),
+      LOGGER,
       "cmd_type was '%s'. Choices are 'group' or 'single'.",
       cmd_type.c_str());
     return false;

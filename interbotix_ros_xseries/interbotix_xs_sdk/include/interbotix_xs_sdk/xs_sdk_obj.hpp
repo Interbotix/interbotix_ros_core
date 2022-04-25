@@ -56,6 +56,8 @@
 namespace interbotix_xs
 {
 
+static const rclcpp::Logger LOGGER = rclcpp::get_logger("interbotix_xs_sdk.xs_sdk");
+
 // All motors are preset to 1M baud
 #define DEFAULT_BAUDRATE 1000000
 
