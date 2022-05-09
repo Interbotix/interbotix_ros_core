@@ -391,6 +391,14 @@ void InterbotixRobotXS::robot_reboot_motors(
 
 void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vector<float> commands)
 {
+  if (commands.size() != group_map[name].joint_num) {
+    RCLCPP_ERROR(
+      this->get_logger(),
+      "Number of commands (%ld) does not match the number of joints in group '%s' (%d). "
+      "Will not execute.",
+      commands.size(), name.c_str(), group_map[name].joint_num);
+    return;
+  }
   const std::string mode = group_map[name].mode;
   std::vector<int32_t> dynamixel_commands(commands.size());
   if (
