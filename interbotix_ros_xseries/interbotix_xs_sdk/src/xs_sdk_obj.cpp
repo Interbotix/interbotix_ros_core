@@ -736,7 +736,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     mode_configs = YAML::LoadFile(mode_configs_file.c_str());
     RCLCPP_INFO(
       LOGGER,
-      "Successfully retrieved mode configs from '%s'.",
+      "Loaded mode configs from '%s'.",
       mode_configs_file.c_str());
   } catch (YAML::BadFile & error) {
     // if file is not found or a bad format, shut down
@@ -923,7 +923,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 
   RCLCPP_INFO(
     LOGGER,
-    "Successfully retrieved motor configs from '%s'.",
+    "Loaded motor configs from '%s'.",
     motor_configs_file.c_str());
   return true;
 }

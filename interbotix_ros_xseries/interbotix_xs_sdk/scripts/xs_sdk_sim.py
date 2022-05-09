@@ -206,7 +206,7 @@ class InterbotixRobotXS(Node):
             LOGGER.error('Motor Config File was not found.')
             return False
         LOGGER.info(
-            f'Successfully retrieved motor configs from `{motor_configs_filepath}`'
+            f'Loaded motor configs from `{motor_configs_filepath}`.'
         )
 
         try:
@@ -215,9 +215,7 @@ class InterbotixRobotXS(Node):
         except IOError:
             mode_configs = {}
             LOGGER.warning('Mode Config file was not found. Using defaults.')
-        LOGGER.info(
-            f'Successfully retrieved mode configs from `{mode_configs_filepath}`'
-        )
+        LOGGER.info(f'Loaded mode configs from `{mode_configs_filepath}`.')
 
         joint_order = motor_configs['joint_order']
         sleep_positions = motor_configs['sleep_positions']
