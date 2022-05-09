@@ -232,11 +232,16 @@ class InterbotixRobotXS(Node):
         singles = mode_configs.get('singles', {})
 
         # populate self.gripper_map
-        for gpr, items in grippers.items():
-            self.gripper_map[gpr] = {'horn_radius': items['horn_radius'],
-                                     'arm_length': items['arm_length'],
-                                     'left_finger': items['left_finger'],
-                                     'right_finger': items['right_finger']}
+        if grippers:
+            for gpr, items in grippers.items():
+                self.gripper_map[gpr] = {
+                    'horn_radius': items['horn_radius'],
+                    'arm_length': items['arm_length'],
+                    'left_finger': items['left_finger'],
+                    'right_finger': items['right_finger']
+                }
+        else:
+            self.gripper_map = {}
 
         # populate self.sleep_map, self.gripper_order, and self.js_index_map
         # also, initialize self.joint_states
@@ -291,19 +296,20 @@ class InterbotixRobotXS(Node):
             )
 
         # continue to populate self.motor_map
-        for sgl in singles:
-            info = singles[sgl]
-            mode = info.get('operating_mode', 'position')
-            profile_type = info.get('profile_type', 'velocity')
-            profile_velocity = info.get('profile_velocity', 0)
-            profile_acceleration = info.get('profile_acceleration', 0)
-            self.robot_set_joint_operating_mode(
-                sgl,
-                mode,
-                profile_type,
-                profile_velocity,
-                profile_acceleration
-            )
+        if singles:
+            for sgl in singles:
+                info = singles[sgl]
+                mode = info.get('operating_mode', 'position')
+                profile_type = info.get('profile_type', 'velocity')
+                profile_velocity = info.get('profile_velocity', 0)
+                profile_acceleration = info.get('profile_acceleration', 0)
+                self.robot_set_joint_operating_mode(
+                    sgl,
+                    mode,
+                    profile_type,
+                    profile_velocity,
+                    profile_acceleration
+                )
 
         return True
 
