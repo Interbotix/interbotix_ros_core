@@ -10,7 +10,7 @@ InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success
     success = false;
     return;
   }
-  
+
   if (!robot_init_port())
   {
     success = false;
@@ -20,7 +20,7 @@ InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success
   if (!robot_ping_motors())
   {
     success = false;
-    ROS_ERROR("[xs_sdk] Failed to find all motors. Shutting down...");
+    ROS_ERROR("[xs_sdk] Failed to find all motors specified in the motor_config file. Shutting down...");
     return;
   }
 
@@ -91,8 +91,8 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(std::string const& name, 
   {
     int32_t drive_mode;
     dxl_wb.itemRead(motor_map[motor_name].motor_id, "Drive_Mode", &drive_mode);
-    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, read Drive Mode %d.",motor_map[motor_name].motor_id, drive_mode);
-    
+    ROS_DEBUG("[xs_sdk::robot_set_joint_operating_mode] ID: %d, read Drive Mode %d.", motor_map[motor_name].motor_id, drive_mode);
+
     if (drive_mode <= 1 && profile_type == "time")
     {
       dxl_wb.itemWrite(motor_map[motor_name].motor_id, "Drive_Mode", drive_mode + 4);
@@ -234,6 +234,11 @@ void InterbotixRobotXS::robot_reboot_motors(std::string const& cmd_type, std::st
 /// @details - commands are processed differently based on the operating mode specified for the motor group
 void InterbotixRobotXS::robot_write_commands(std::string const& name, std::vector<float> commands)
 {
+  if (commands.size() != group_map[name].joint_num)
+  {
+    ROS_ERROR("[xs_sdk] Number of commands (%ld) does not match the number of joints in group '%s' (%d). Will not execute.", commands.size(), name.c_str(), group_map[name].joint_num);
+    return;
+  }
   std::string mode = group_map[name].mode;
   int32_t dynamixel_commands[commands.size()];
 
@@ -487,6 +492,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   try
   {
     mode_configs = YAML::LoadFile(mode_configs_file.c_str());
+    ROS_INFO("Loaded mode configs from '%s'.", mode_configs_file.c_str());
   }
   catch (YAML::BadFile &error)
   {
@@ -604,7 +610,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   pub_states = pub_configs["publish_states"].as<bool>(true);
   js_topic = pub_configs["topic_name"].as<std::string>("joint_states");
 
-  ROS_INFO("[xs_sdk] Successfully retrieved motor configs from %s.", motor_configs_file.c_str());
+  ROS_INFO("[xs_sdk] Loaded motor configs from '%s'.", motor_configs_file.c_str());
   return true;
 }
 
@@ -999,6 +1005,19 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(interbotix_xs_msgs::RobotInfo::
       res.joint_velocity_limits.push_back(ptr->limits->velocity);
     }
   }
+
+  if (req.name != "all")
+  {
+    res.name.push_back(req.name);
+  }
+  else
+  {
+    for (auto key : group_map)
+    {
+      res.name.push_back(key.first);
+    }
+  }
+
   return true;
 }
 
@@ -1109,7 +1128,6 @@ void InterbotixRobotXS::robot_execute_trajectory(const ros::TimerEvent &e)
 /// @param e - TimerEvent message [unused]
 void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 {
-  bool result = false;
   const char* log;
 
   sensor_msgs::JointState joint_state_msg;
@@ -1121,7 +1139,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 
   if (dxl_wb.getProtocolVersion() == 2.0f)
   {
-    // Checks if data can be sent properly
+    // Execute sync read from all pinged DYNAMIXELs
     if (!dxl_wb.syncRead(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
                           all_ptr->joint_ids.data(),
                           all_ptr->joint_num,
