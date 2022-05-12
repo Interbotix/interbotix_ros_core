@@ -15,3 +15,4 @@ float32[] joint_velocity_limits          # the velocity limit [rad/s] for each j
 float32[] joint_sleep_positions          # the sleep position [rad] for each joint in a group or for the specified joint
 int16[] joint_state_indices              # index for each joint in a group or for the specified joint in the published JointState message
 int16 num_joints                         # the number of joints in a group or 1
+string[] name                            # the name of the group or joint requested; if group was 'all', returns the names of all groups
