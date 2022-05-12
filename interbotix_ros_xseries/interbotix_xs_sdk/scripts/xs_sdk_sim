@@ -352,6 +352,11 @@ class InterbotixRobotXS(object):
                 res.joint_lower_limits.append(joint_object.limit.lower)
                 res.joint_upper_limits.append(joint_object.limit.upper)
                 res.joint_velocity_limits.append(joint_object.limit.velocity)
+        if 'all' not in req.name:
+            res.name.append(req.name)
+        else:
+            for key, _ in self.group_map.items():
+                res.name.append(key)
         return res
 
     ### @brief ROS Service that allows the user to change operating modes
