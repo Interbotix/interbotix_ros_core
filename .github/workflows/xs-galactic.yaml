@@ -24,8 +24,5 @@ jobs:
         with:
           submodules: recursive
           path: src
-      - name: Create src directory for xs
-        run: |
-          rm src/interbotix_ros_xseries/COLCON_IGNORE
       - uses: 'ros-industrial/industrial_ci@master'
         env: ${{matrix.env}}
