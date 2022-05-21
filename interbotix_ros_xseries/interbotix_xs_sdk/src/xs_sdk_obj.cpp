@@ -944,25 +944,25 @@ bool InterbotixRobotXS::robot_init_port(void)
 
 bool InterbotixRobotXS::robot_ping_motors(void)
 {
-  for (auto const & motor : motor_map) {
+  for (const auto &[motor_name, motor_state] : motor_map) {
     // iterate through each servo in the motor_map
     uint16_t model_number = 0;
     // try to ping the servo
-    if (!dxl_wb.ping(motor.second.motor_id, &model_number)) {
+    if (!dxl_wb.ping(motor_state.motor_id, &model_number)) {
       // if any ping is unsuccessful, shut down
       RCLCPP_ERROR(
         LOGGER,
         "Can't find Dynamixel ID '%d',\tJoint Name : '%s'",
-        motor.second.motor_id, motor.first.c_str());
+        motor_state.motor_id, motor_name.c_str());
       return false;
     } else {
       RCLCPP_INFO(
         LOGGER,
         "Found Dynamixel ID : %d,\tModel Number : %d,\tJoint Name : %s",
-        motor.second.motor_id, model_number, motor.first.c_str());
+        motor_state.motor_id, model_number, motor_name.c_str());
     }
     // untorque each pinged servo, need to write data to the EEPROM
-    dxl_wb.torque(motor.second.motor_id, false);
+    dxl_wb.torque(motor_state.motor_id, false);
   }
   return true;
 }
@@ -1007,8 +1007,8 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   }
 
   const ControlItem * goal_current = NULL;
-  for (auto const & motor : motor_map) {
-    goal_current = dxl_wb.getItemInfo(motor.second.motor_id, "Goal_Current");
+  for (auto const & [_, motor_info] : motor_map) {
+    goal_current = dxl_wb.getItemInfo(motor_info.motor_id, "Goal_Current");
     if (goal_current) {
       break;
     }
@@ -1429,8 +1429,8 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(
   if (req->name != "all") {
     res->name.push_back(req->name);
   } else {
-    for (auto key : group_map) {
-      res->name.push_back(key.first);
+    for (auto const &[group_name, _] : group_map) {
+      res->name.push_back(group_name);
     }
   }
   return true;
