@@ -208,8 +208,8 @@ public:
     const std::string & name,
     const std::string & mode,
     const std::string profile_type = DEFAULT_PROF_TYPE,
-    int32_t profile_velocity = DEFAULT_PROF_VEL,
-    int32_t profile_acceleration = DEFAULT_PROF_ACC);
+    const int32_t profile_velocity = DEFAULT_PROF_VEL,
+    const int32_t profile_acceleration = DEFAULT_PROF_ACC);
 
   /// @brief Helper function used to set the operating mode for a single motor
   /// @param name desired motor name
@@ -223,8 +223,8 @@ public:
     const std::string & name,
     const std::string & mode,
     const std::string profile_type = DEFAULT_PROF_TYPE,
-    int32_t profile_velocity = DEFAULT_PROF_VEL,
-    int32_t profile_acceleration = DEFAULT_PROF_ACC);
+    const int32_t profile_velocity = DEFAULT_PROF_VEL,
+    const int32_t profile_acceleration = DEFAULT_PROF_ACC);
 
   /// @brief Torque On/Off a specific group of motors or a single motor
   /// @param cmd_type set to 'CMD_TYPE_GROUP' if torquing off a group of motors or
@@ -466,49 +466,49 @@ private:
   /// @brief Loads a robot-specific 'motor_configs' yaml file and populates class variables with
   ///   its contents
   /// @param <bool> [out] True if the motor configs were successfully retrieved; False otherwise
-  bool robot_get_motor_configs(void);
+  bool robot_get_motor_configs();
 
   /// @brief Initializes the port to communicate with the Dynamixel servos
   /// @param <bool> [out] True if the port was successfully opened; False otherwise
-  bool robot_init_port(void);
+  bool robot_init_port();
 
   /// @brief Pings all motors to make sure they can be found
   /// @param <bool> [out] True if all motors were found; False otherwise
-  bool robot_ping_motors(void);
+  bool robot_ping_motors();
 
   /// @brief Declare all parameters needed by the node
-  void robot_init_parameters(void);
+  void robot_init_parameters();
 
   /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
   /// @param <bool> [out] True if all register values were written successfully; False otherwise
-  bool robot_load_motor_configs(void);
+  bool robot_load_motor_configs();
 
   /// @brief Retrieves information about 'Goal_XXX' and 'Present_XXX' registers
   /// @details Info includes a register's name, address, and data length
-  void robot_init_controlItems(void);
+  void robot_init_controlItems();
 
   /// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors
   ///   simultaneously
-  void robot_init_workbench_handlers(void);
+  void robot_init_workbench_handlers();
 
   /// @brief Loads a 'mode_configs' yaml file containing desired operating modes and sets up the
   ///   motors accordingly
-  void robot_init_operating_modes(void);
+  void robot_init_operating_modes();
 
   /// @brief Initialize ROS Publishers
-  void robot_init_publishers(void);
+  void robot_init_publishers();
 
   /// @brief Initialize ROS Subscribers
-  void robot_init_subscribers(void);
+  void robot_init_subscribers();
 
   /// @brief Initialize ROS Services
-  void robot_init_services(void);
+  void robot_init_services();
 
   /// @brief Initialize ROS Timers
-  void robot_init_timers(void);
+  void robot_init_timers();
 
   /// @brief Waits until first JointState message is received
-  void robot_wait_for_joint_states(void);
+  void robot_wait_for_joint_states();
 
   /// @brief ROS Subscriber callback function to command a group of joints
   /// @param msg JointGroupCommand message dictating the joint group to command along with the
@@ -534,8 +534,8 @@ private:
   /// @details refer to the service definition for details
   bool robot_srv_torque_enable(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<TorqueEnable::Request> req,
-    std::shared_ptr<TorqueEnable::Response> res);
+    const std::shared_ptr<TorqueEnable::Request> req,
+    const std::shared_ptr<TorqueEnable::Response> res);
 
   /// @brief ROS Service to reboot the motors on the robot
   /// @param req Reboot service message request
@@ -543,8 +543,8 @@ private:
   /// @details refer to the service definition for details
   bool robot_srv_reboot_motors(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<Reboot::Request> req,
-    std::shared_ptr<Reboot::Response> res);
+    const std::shared_ptr<Reboot::Request> req,
+    const std::shared_ptr<Reboot::Response> res);
 
   /// @brief ROS Service that allows the user to get information about the robot
   /// @param req RobotInfo service message request
@@ -552,7 +552,7 @@ private:
   /// @details refer to the service definition for details
   bool robot_srv_get_robot_info(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<RobotInfo::Request> req,
+    const std::shared_ptr<RobotInfo::Request> req,
     std::shared_ptr<RobotInfo::Response> res);
 
   /// @brief ROS Service that allows the user to change operating modes
@@ -561,8 +561,8 @@ private:
   /// @details refer to the service definition for details
   bool robot_srv_set_operating_modes(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<OperatingModes::Request> req,
-    std::shared_ptr<OperatingModes::Response> res);
+    const std::shared_ptr<OperatingModes::Request> req,
+    const std::shared_ptr<OperatingModes::Response> res);
 
   /// @brief ROS Service that allows the user to set the motor firmware PID gains
   /// @param req MotorGains service message request
@@ -570,16 +570,16 @@ private:
   /// @details refer to the service defintion for details
   bool robot_srv_set_motor_pid_gains(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<MotorGains::Request> req,
-    std::shared_ptr<MotorGains::Response> res);
+    const std::shared_ptr<MotorGains::Request> req,
+    const std::shared_ptr<MotorGains::Response> res);
 
   /// @brief ROS Service that allows the user to change a specific register to a specific value for
   ///   multiple motors
   /// @param req RegisterValues service message request
   bool robot_srv_set_motor_registers(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<RegisterValues::Request> req,
-    std::shared_ptr<RegisterValues::Response> res);
+    const std::shared_ptr<RegisterValues::Request> req,
+    const std::shared_ptr<RegisterValues::Response> res);
 
   /// @brief ROS Service that allows the user to read a specific register on multiple motors
   /// @param req RegisterValues service message request
@@ -587,7 +587,7 @@ private:
   /// @details refer to the service definition for details
   bool robot_srv_get_motor_registers(
     const std::shared_ptr<rmw_request_id_t> request_header,
-    std::shared_ptr<RegisterValues::Request> req,
+    const std::shared_ptr<RegisterValues::Request> req,
     std::shared_ptr<RegisterValues::Response> res);
 
   /// @brief Checks service call requests for validity
@@ -596,7 +596,7 @@ private:
   /// @returns true if the service call request is valid, false otherwise
   /// @details cmd_type must be 'CMD_TYPE_SINGLE' or 'CMD_TYPE_GROUP'; name must be in the
   ///   group_map or motor_map
-  bool robot_srv_validate(std::string cmd_type, std::string & name);
+  bool robot_srv_validate(const std::string & cmd_type, const std::string & name);
 
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
   void robot_execute_trajectory();

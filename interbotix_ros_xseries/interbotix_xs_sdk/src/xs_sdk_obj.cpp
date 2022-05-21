@@ -79,7 +79,7 @@ InterbotixRobotXS::InterbotixRobotXS(
 InterbotixRobotXS::~InterbotixRobotXS() {}
 
 /// @brief Declare all parameters needed by the node
-void InterbotixRobotXS::robot_init_parameters(void)
+void InterbotixRobotXS::robot_init_parameters()
 {
   this->declare_parameter<std::string>("motor_configs", "");
   this->declare_parameter<std::string>("mode_configs", "");
@@ -92,8 +92,8 @@ void InterbotixRobotXS::robot_set_operating_modes(
   const std::string & name,
   const std::string & mode,
   const std::string profile_type,
-  int32_t profile_velocity,
-  int32_t profile_acceleration)
+  const int32_t profile_velocity,
+  const int32_t profile_acceleration)
 {
   if (cmd_type == CMD_TYPE_GROUP && group_map.count(name) > 0) {
     for (auto const & joint_name : group_map[name].joint_names) {
@@ -140,8 +140,8 @@ void InterbotixRobotXS::robot_set_joint_operating_mode(
   const std::string & name,
   const std::string & mode,
   const std::string profile_type,
-  int32_t profile_velocity,
-  int32_t profile_acceleration)
+  const int32_t profile_velocity,
+  const int32_t profile_acceleration)
 {
   // torque off sister servos
   for (auto const & joint_name : sister_map[name]) {
@@ -389,7 +389,9 @@ void InterbotixRobotXS::robot_reboot_motors(
   }
 }
 
-void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vector<float> commands)
+void InterbotixRobotXS::robot_write_commands(
+  const std::string & name,
+  std::vector<float> commands)
 {
   if (commands.size() != group_map[name].joint_num) {
     RCLCPP_ERROR(
@@ -476,7 +478,9 @@ void InterbotixRobotXS::robot_write_commands(std::string const & name, std::vect
   }
 }
 
-void InterbotixRobotXS::robot_write_joint_command(std::string const & name, float command)
+void InterbotixRobotXS::robot_write_joint_command(
+  const std::string & name,
+  float command)
 {
   const std::string mode = motor_map[name].mode;
   if (
@@ -705,7 +709,7 @@ float InterbotixRobotXS::robot_convert_angular_position_to_linear(
   return a1 + a2;
 }
 
-bool InterbotixRobotXS::robot_get_motor_configs(void)
+bool InterbotixRobotXS::robot_get_motor_configs()
 {
   std::string motor_configs_file, mode_configs_file;
 
@@ -928,7 +932,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   return true;
 }
 
-bool InterbotixRobotXS::robot_init_port(void)
+bool InterbotixRobotXS::robot_init_port()
 {
   // try to connect to the specified port at the default baudrate
   if (!dxl_wb.init(port.c_str(), DEFAULT_BAUDRATE)) {
@@ -942,7 +946,7 @@ bool InterbotixRobotXS::robot_init_port(void)
   return true;
 }
 
-bool InterbotixRobotXS::robot_ping_motors(void)
+bool InterbotixRobotXS::robot_ping_motors()
 {
   for (const auto &[motor_name, motor_state] : motor_map) {
     // iterate through each servo in the motor_map
@@ -967,7 +971,7 @@ bool InterbotixRobotXS::robot_ping_motors(void)
   return true;
 }
 
-bool InterbotixRobotXS::robot_load_motor_configs(void)
+bool InterbotixRobotXS::robot_load_motor_configs()
 {
   bool load_configs;
   this->get_parameter("load_configs", load_configs);
@@ -989,7 +993,7 @@ bool InterbotixRobotXS::robot_load_motor_configs(void)
   return true;
 }
 
-void InterbotixRobotXS::robot_init_controlItems(void)
+void InterbotixRobotXS::robot_init_controlItems()
 {
   uint8_t motor_id = motor_map.begin()->second.motor_id;
 
@@ -1061,7 +1065,7 @@ void InterbotixRobotXS::robot_init_controlItems(void)
   control_items["Present_Current"] = present_current;
 }
 
-void InterbotixRobotXS::robot_init_workbench_handlers(void)
+void InterbotixRobotXS::robot_init_workbench_handlers()
 {
   if (
     !dxl_wb.addSyncWriteHandler(
@@ -1119,7 +1123,7 @@ void InterbotixRobotXS::robot_init_workbench_handlers(void)
   }
 }
 
-void InterbotixRobotXS::robot_init_operating_modes(void)
+void InterbotixRobotXS::robot_init_operating_modes()
 {
   YAML::Node all_shadows = motor_configs["shadows"];
   for (
@@ -1209,14 +1213,14 @@ void InterbotixRobotXS::robot_init_operating_modes(void)
   }
 }
 
-void InterbotixRobotXS::robot_init_publishers(void)
+void InterbotixRobotXS::robot_init_publishers()
 {
   if (pub_states) {
     pub_joint_states = this->create_publisher<sensor_msgs::msg::JointState>(js_topic, 10);
   }
 }
 
-void InterbotixRobotXS::robot_init_subscribers(void)
+void InterbotixRobotXS::robot_init_subscribers()
 {
   using namespace std::placeholders;
   sub_command_group = this->create_subscription<JointGroupCommand>(
@@ -1233,7 +1237,7 @@ void InterbotixRobotXS::robot_init_subscribers(void)
     std::bind(&InterbotixRobotXS::robot_sub_command_traj, this, _1));
 }
 
-void InterbotixRobotXS::robot_init_services(void)
+void InterbotixRobotXS::robot_init_services()
 {
   using namespace std::placeholders;
   srv_torque_enable = this->create_service<TorqueEnable>(
@@ -1259,7 +1263,7 @@ void InterbotixRobotXS::robot_init_services(void)
     std::bind(&InterbotixRobotXS::robot_srv_get_motor_registers, this, _1, _2, _3));
 }
 
-void InterbotixRobotXS::robot_init_timers(void)
+void InterbotixRobotXS::robot_init_timers()
 {
   execute_joint_traj = false;
   using namespace std::chrono_literals;
@@ -1275,7 +1279,7 @@ void InterbotixRobotXS::robot_init_timers(void)
   }
 }
 
-void InterbotixRobotXS::robot_wait_for_joint_states(void)
+void InterbotixRobotXS::robot_wait_for_joint_states()
 {
   if (timer_hz == 0) {
     return;
@@ -1286,6 +1290,7 @@ void InterbotixRobotXS::robot_wait_for_joint_states(void)
     r.sleep();
   }
 }
+
 void InterbotixRobotXS::robot_sub_command_group(const JointGroupCommand::SharedPtr msg)
 {
   robot_write_commands(msg->name, msg->cmd);
@@ -1345,8 +1350,8 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
 
 bool InterbotixRobotXS::robot_srv_torque_enable(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<TorqueEnable::Request> req,
-  std::shared_ptr<TorqueEnable::Response> res)
+  const std::shared_ptr<TorqueEnable::Request> req,
+  const std::shared_ptr<TorqueEnable::Response> res)
 {
   (void)request_header;
   if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
@@ -1359,8 +1364,8 @@ bool InterbotixRobotXS::robot_srv_torque_enable(
 
 bool InterbotixRobotXS::robot_srv_reboot_motors(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<Reboot::Request> req,
-  std::shared_ptr<Reboot::Response> res)
+  const std::shared_ptr<Reboot::Request> req,
+  const std::shared_ptr<Reboot::Response> res)
 {
   (void)request_header;
   if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
@@ -1377,7 +1382,7 @@ bool InterbotixRobotXS::robot_srv_reboot_motors(
 
 bool InterbotixRobotXS::robot_srv_get_robot_info(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<RobotInfo::Request> req,
+  const std::shared_ptr<RobotInfo::Request> req,
   std::shared_ptr<RobotInfo::Response> res)
 {
   (void)request_header;
@@ -1438,8 +1443,8 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(
 
 bool InterbotixRobotXS::robot_srv_set_operating_modes(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<OperatingModes::Request> req,
-  std::shared_ptr<OperatingModes::Response> res)
+  const std::shared_ptr<OperatingModes::Request> req,
+  const std::shared_ptr<OperatingModes::Response> res)
 {
   (void)request_header;
   if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
@@ -1458,8 +1463,8 @@ bool InterbotixRobotXS::robot_srv_set_operating_modes(
 
 bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<MotorGains::Request> req,
-  std::shared_ptr<MotorGains::Response> res)
+  const std::shared_ptr<MotorGains::Request> req,
+  const std::shared_ptr<MotorGains::Response> res)
 {
   (void)request_header;
   if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
@@ -1480,8 +1485,8 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(
 
 bool InterbotixRobotXS::robot_srv_set_motor_registers(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<RegisterValues::Request> req,
-  std::shared_ptr<RegisterValues::Response> res)
+  const std::shared_ptr<RegisterValues::Request> req,
+  const std::shared_ptr<RegisterValues::Response> res)
 {
   (void)request_header;
   if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
@@ -1494,7 +1499,7 @@ bool InterbotixRobotXS::robot_srv_set_motor_registers(
 
 bool InterbotixRobotXS::robot_srv_get_motor_registers(
   const std::shared_ptr<rmw_request_id_t> request_header,
-  std::shared_ptr<RegisterValues::Request> req,
+  const std::shared_ptr<RegisterValues::Request> req,
   std::shared_ptr<RegisterValues::Response> res)
 {
   (void)request_header;
@@ -1510,7 +1515,6 @@ void InterbotixRobotXS::robot_execute_trajectory()
 {
   // get the current real time for this callback execution
   rclcpp::Time current_real = this->get_clock()->now();
-  using namespace std::chrono_literals;
 
   static size_t cntr = 1;
   RCLCPP_DEBUG(
@@ -1608,7 +1612,6 @@ void InterbotixRobotXS::robot_execute_trajectory()
 
 void InterbotixRobotXS::robot_update_joint_states()
 {
-  bool result = false;
   const char * log;
 
   sensor_msgs::msg::JointState joint_state_msg;
@@ -1739,7 +1742,9 @@ void InterbotixRobotXS::robot_update_joint_states()
   }
 }
 
-bool InterbotixRobotXS::robot_srv_validate(std::string cmd_type, std::string & name)
+bool InterbotixRobotXS::robot_srv_validate(
+  const std::string & cmd_type,
+  const std::string & name)
 {
   if (cmd_type == CMD_TYPE_GROUP) {
     if (group_map.count(name) > 0) {
