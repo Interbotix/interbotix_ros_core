@@ -39,9 +39,10 @@
 
 #include "urdf/model.h"
 #include "yaml-cpp/yaml.h"
-#include "dynamixel_workbench_toolbox/dynamixel_workbench.h"
 #include "rclcpp/rclcpp.hpp"
 #include "sensor_msgs/msg/joint_state.hpp"
+#include "interbotix_xs_driver/xs_common.hpp"
+#include "interbotix_xs_driver/xs_driver.hpp"
 
 #include "interbotix_xs_msgs/srv/reboot.hpp"
 #include "interbotix_xs_msgs/srv/robot_info.hpp"
@@ -58,64 +59,6 @@ namespace interbotix_xs
 
 static const rclcpp::Logger LOGGER = rclcpp::get_logger("interbotix_xs_sdk.xs_sdk");
 
-// All motors are preset to 1M baud
-#define DEFAULT_BAUDRATE 1000000
-
-// Udev rule creates a symlink with this name
-#define DEFAULT_PORT "/dev/ttyDXL"
-
-// Write goal positions [rad] to multiple motors at the same time
-#define SYNC_WRITE_HANDLER_FOR_GOAL_POSITION 0
-
-// Write goal velocities [rad/s] to multiple motors at the same time
-#define SYNC_WRITE_HANDLER_FOR_GOAL_VELOCITY 1
-
-// Write goal currents [mA] to multiple motors at the same time
-#define SYNC_WRITE_HANDLER_FOR_GOAL_CURRENT 2
-
-// Write goal pwms to multiple motors at the same time
-#define SYNC_WRITE_HANDLER_FOR_GOAL_PWM 3
-
-// Read current joint states for multiple motors at the same time
-#define SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT 0
-
-// Default motor operating mode is 'position'
-inline static const std::string DEFAULT_OP_MODE = "position";
-
-// Default motor profile type is 'velocity' (as opposed to 'time')
-inline static const std::string DEFAULT_PROF_TYPE = "velocity";
-
-// Allow joint velocity to be infinite when in position control mode - makes robot very reactive to
-// joint commands
-static const int32_t DEFAULT_PROF_VEL = 0;
-
-// Allow joint acceleration to be infinite when in position control mode - makes robot very
-// reactive to joint commands
-static const int32_t DEFAULT_PROF_ACC = 0;
-
-// Torque motor on by default
-static const bool TORQUE_ENABLE = true;
-
-// Get motor configurations by default
-static bool LOAD_CONFIGS = true;
-
-// Constants for operating modes
-inline static const std::string MODE_PWM = "pwm";
-inline static const std::string MODE_POSITION = "position";
-inline static const std::string MODE_EXT_POSITION = "ext_postition";
-inline static const std::string MODE_CURRENT_BASED_POSITION = "current_based_position";
-inline static const std::string MODE_LINEAR_POSITION = "linear_position";
-inline static const std::string MODE_VELOCITY = "velocity";
-inline static const std::string MODE_CURRENT = "current";
-
-// constants for command types
-inline static const std::string CMD_TYPE_GROUP = "group";
-inline static const std::string CMD_TYPE_SINGLE = "single";
-
-// constants for profile types
-inline static const std::string PROFILE_VELOCITY = "velocity";
-inline static const std::string PROFILE_TIME = "time";
-
 // simplify message and service usage
 using MotorGains = interbotix_xs_msgs::srv::MotorGains;
 using OperatingModes = interbotix_xs_msgs::srv::OperatingModes;
@@ -127,63 +70,12 @@ using JointGroupCommand = interbotix_xs_msgs::msg::JointGroupCommand;
 using JointSingleCommand = interbotix_xs_msgs::msg::JointSingleCommand;
 using JointTrajectoryCommand = interbotix_xs_msgs::msg::JointTrajectoryCommand;
 
-// Struct to hold multiple joints that represent a group
-struct JointGroup
-{
-  // Names of all joints in the group
-  std::vector<std::string> joint_names;
-  // Dynamixel ID of all joints in the group
-  std::vector<uint8_t> joint_ids;
-  // Number of joints in the group
-  uint8_t joint_num;
-  // Operating Mode for all joints in the group
-  std::string mode;
-  // Profile Type ('velocity' or 'time') for all joints in the group
-  std::string profile_type;
-};
-
-// Struct to hold data on a single motor
-struct MotorState
-{
-  // Dynamixel ID of the motor
-  uint8_t motor_id;
-  // Operating Mode of the motor
-  std::string mode;
-  // Profile Type ('velocity' or 'time') for the motor
-  std::string profile_type;
-};
-
-// Struct to hold data on an Interbotix Gripper
-struct Gripper
-{
-  // Index in the published JointState message 'name' list belonging to the gripper motor
-  size_t js_index;
-  // Distance [m] from the motor horn's center to its edge
-  float horn_radius;
-  // Distance [m] from the edge of the motor horn to a finger
-  float arm_length;
-  // Name of the 'left_finger' joint as defined in the URDF (if present)
-  std::string left_finger;
-  // Name of the 'right_finger' joint as defined in the URDF (if present)
-  std::string right_finger;
-};
-
-// Struct to hold a desired register value for a given motor
-struct MotorInfo
-{
-  // Dynamixel ID of a motor
-  uint8_t motor_id;
-  // Register name
-  std::string reg;
-  // Value to write to the above register for the specified motor
-  int32_t value;
-};
-
-// Interbotix Core Class to build any type of Dynamixel-based robot
+/// @brief The Interbotix X-Series ROS Node
 class InterbotixRobotXS : public rclcpp::Node
 {
 public:
   /// @brief Constructor for the InterbotixRobotXS
+  /// @param succes <out> Whether or not the Node initialized properly
   /// @param options ROS NodeOptions
   explicit InterbotixRobotXS(
     bool & success,
@@ -191,159 +83,6 @@ public:
 
   /// @brief Destructor for the InterbotixRobotXS
   ~InterbotixRobotXS();
-
-  /// @brief Set the operating mode for a specific group of motors or a single motor
-  /// @param cmd_type set to 'CMD_TYPE_GROUP' if changing the operating mode for a group of motors
-  ///   or 'CMD_TYPE_SINGLE' if changing the operating mode for a single motor
-  /// @param name desired motor group name if cmd_type is set to 'CMD_TYPE_GROUP' or the desired
-  ///   motor name if cmd_type is set to 'CMD_TYPE_SINGLE'
-  /// @param mode desired operating mode (either 'position', 'linear_position', 'ext_position',
-  ///   'velocity', 'pwm', 'current', or 'current_based_position')
-  /// @param profile_type set to 'velocity' for a Velocity-based Profile or 'time' for a Time-based
-  ///   Profile (modifies Bit 2 of the 'Drive_Mode' register)
-  /// @param profile_velocity passthrough to the Profile_Velocity register on the motor
-  /// @param profile_acceleration passthrough to the Profile_Acceleration register on the motor
-  void robot_set_operating_modes(
-    const std::string cmd_type,
-    const std::string & name,
-    const std::string & mode,
-    const std::string profile_type = DEFAULT_PROF_TYPE,
-    const int32_t profile_velocity = DEFAULT_PROF_VEL,
-    const int32_t profile_acceleration = DEFAULT_PROF_ACC);
-
-  /// @brief Helper function used to set the operating mode for a single motor
-  /// @param name desired motor name
-  /// @param mode desired operating mode (either 'position', 'linear_position', 'ext_position',
-  ///   'velocity', 'pwm', 'current', or 'current_based_position')
-  /// @param profile_type set to 'velocity' for a Velocity-based Profile or 'time' for a Time-based
-  ///   Profile (modifies Bit 2 of the 'Drive_Mode' register)
-  /// @param profile_velocity passthrough to the Profile_Velocity register on the motor
-  /// @param profile_acceleration passthrough to the Profile_Acceleration register on the motor
-  void robot_set_joint_operating_mode(
-    const std::string & name,
-    const std::string & mode,
-    const std::string profile_type = DEFAULT_PROF_TYPE,
-    const int32_t profile_velocity = DEFAULT_PROF_VEL,
-    const int32_t profile_acceleration = DEFAULT_PROF_ACC);
-
-  /// @brief Torque On/Off a specific group of motors or a single motor
-  /// @param cmd_type set to 'CMD_TYPE_GROUP' if torquing off a group of motors or
-  ///   'CMD_TYPE_SINGLE' if torquing off a single motor
-  /// @param name desired motor group name if cmd_type is set to 'CMD_TYPE_GROUP' or the desired
-  ///   motor name if cmd_type is set to 'CMD_TYPE_SINGLE'
-  /// @param enable set to True to torque on or False to torque off
-  void robot_torque_enable(
-    const std::string cmd_type,
-    const std::string & name,
-    const bool & enable);
-
-  /// @brief Reboot a specific group of motors or a single motor
-  /// @param cmd_type set to 'CMD_TYPE_GROUP' if rebooting a group of motors or 'CMD_TYPE_SINGLE'
-  ///   if rebooting a single motor
-  /// @param name desired motor group name if cmd_type is set to 'CMD_TYPE_GROUP' or the desired
-  ///   motor name if cmd_type is set to 'CMD_TYPE_SINGLE'
-  /// @param torque_enable set to True to torque on or False to torque off after rebooting
-  /// @param smart_reboot set to True to only reboot motor(s) in a specified group that have gone
-  ///   into an error state
-  void robot_reboot_motors(
-    const std::string cmd_type,
-    const std::string & name,
-    const bool & enable,
-    const bool & smart_reboot);
-
-  /// @brief Command a desired group of motors with the specified commands
-  /// @param name desired motor group name
-  /// @param commands vector of commands (order matches the order specified in the 'groups'
-  ///   section in the motor config file)
-  /// @details commands are processed differently based on the operating mode specified for the
-  ///   motor group
-  void robot_write_commands(
-    const std::string & name,
-    std::vector<float> commands);
-
-  /// @brief Command a desired motor with the specified command
-  /// @param name desired motor name
-  /// @param command motor command
-  /// @details the command is processed differently based on the operating mode specified for the
-  ///   motor
-  void robot_write_joint_command(
-    const std::string & name,
-    float command);
-
-  /// @brief Set motor firmware PID gains
-  /// @param cmd_type set to 'CMD_TYPE_GROUP' if changing the PID gains for a group of motors or
-  ///   'CMD_TYPE_SINGLE' if changing the PID gains for a single motor
-  /// @param name desired motor group name if cmd_type is set to 'CMD_TYPE_GROUP' or the desired
-  ///   motor name if cmd_type is set to 'CMD_TYPE_SINGLE'
-  /// @param gains vector containing the desired PID gains - order is as shown in the function
-  void robot_set_motor_pid_gains(
-    const std::string cmd_type,
-    const std::string & name,
-    const std::vector<int32_t> & gains);
-
-  /// @brief Set a register value to multiple motors
-  /// @param cmd_type set to 'CMD_TYPE_GROUP' if setting register values for a group of motors or
-  ///   'CMD_TYPE_SINGLE' if setting a single register value
-  /// @param name desired motor group name if cmd_type is set to 'CMD_TYPE_GROUP' or the desired
-  ///   motor name if cmd_type is set to 'CMD_TYPE_SINGLE'
-  /// @param value desired register value
-  void robot_set_motor_registers(
-    const std::string cmd_type,
-    const std::string & name,
-    const std::string & reg,
-    const int32_t & value);
-
-  /// @brief Get a register value from multiple motors
-  /// @param cmd_type set to 'CMD_TYPE_GROUP' if getting register values from a group of motors or
-  ///   'CMD_TYPE_SINGLE' if getting a single register value
-  /// @param name desired motor group name if cmd_type is set to 'CMD_TYPE_GROUP' or the desired
-  ///   motor name if cmd_type is set to 'CMD_TYPE_SINGLE'
-  /// @param values [out] vector of register values
-  void robot_get_motor_registers(
-    const std::string cmd_type,
-    const std::string & name,
-    const std::string & reg,
-    std::vector<int32_t> & values);
-
-  /// @brief Get states for a group of joints
-  /// @param name desired joint group name
-  /// @param positions [out] vector of current joint positions [rad]
-  /// @param velocities [out] vector of current joint velocities [rad/s]
-  /// @param effort [out] vector of current joint effort [mA]
-  void robot_get_joint_states(
-    const std::string & name,
-    std::vector<float> * positions = NULL,
-    std::vector<float> * velocities = NULL,
-    std::vector<float> * effort = NULL);
-
-  /// @brief Get states for a single joint
-  /// @param name desired joint name
-  /// @param position [out] current joint position [rad]
-  /// @param velocity [out] current joint velocity [rad/s]
-  /// @param effort [out] current joint effort [mA]
-  void robot_get_joint_state(
-    const std::string & name,
-    float * position = NULL,
-    float * velocity = NULL,
-    float * effort = NULL);
-
-  /// @brief Converts linear distance between two gripper fingers into angular position
-  /// @param name name of the gripper servo to command
-  /// @param linear_position desired distance [m] between the two gripper fingers
-  /// @param <float> [out] angular position [rad] that achieves the desired linear distance
-  float robot_convert_linear_position_to_radian(
-    const std::string & name,
-    const float & linear_position);
-
-  /// @brief Converts angular position into the linear distance from one gripper finger to the
-  ///   center of the gripper servo horn
-  /// @param name name of the gripper sevo to command
-  /// @param angular_position desired gripper angular position [rad]
-  /// @param <float> [out] linear position [m] from a gripper finger to the center of the gripper
-  ///   servo horn
-  float robot_convert_angular_position_to_linear(
-    const std::string & name,
-    const float & angular_position);
 
 private:
   // Frequency at which the ROS Timer publishing joint states should run
@@ -358,8 +97,8 @@ private:
   // Pointer to the 'all' group (makes updating joint states more efficient)
   JointGroup * all_ptr;
 
-  // DynamixelWorkbench object used to easily communicate with any Dynamixel servo
-  DynamixelWorkbench dxl_wb;
+  // InterbotixDriverXS object used to talk to the lower-level XS Interfaces
+  std::shared_ptr<InterbotixDriverXS> xs_driver;
 
   // Holds all the information in the motor_configs YAML file
   YAML::Node motor_configs;
@@ -427,8 +166,17 @@ private:
   // Desired JointState topic name
   std::string js_topic;
 
+  // Absolute path to the motor configs file
+  std::string filepath_motor_configs;
+
+  // Absolute path to the mode configs file
+  std::string filepath_mode_configs;
+
+  // Whether or not to write to the EEPROM values on startup
+  bool write_eeprom_on_startup;
+
   // Vector containing all the desired EEPROM register values to command the motors at startup
-  std::vector<MotorInfo> motor_info_vec;
+  std::vector<MotorRegVal> motor_info_vec;
 
   // Vector containing the order in which multiple grippers (if present) are published in the
   // JointState message
@@ -463,37 +211,12 @@ private:
   // Dictionary mapping the name of a joint with its position in the JointState 'name' list
   std::unordered_map<std::string, size_t> js_index_map;
 
-  /// @brief Loads a robot-specific 'motor_configs' yaml file and populates class variables with
-  ///   its contents
-  /// @param <bool> [out] True if the motor configs were successfully retrieved; False otherwise
-  bool robot_get_motor_configs();
-
-  /// @brief Initializes the port to communicate with the Dynamixel servos
-  /// @param <bool> [out] True if the port was successfully opened; False otherwise
-  bool robot_init_port();
-
-  /// @brief Pings all motors to make sure they can be found
-  /// @param <bool> [out] True if all motors were found; False otherwise
-  bool robot_ping_motors();
+  /// @brief Loads the X-Series robot driver
+  /// @returns True if the driver was loaded successfully, False otherwise
+  bool robot_init_driver();
 
   /// @brief Declare all parameters needed by the node
   void robot_init_parameters();
-
-  /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
-  /// @param <bool> [out] True if all register values were written successfully; False otherwise
-  bool robot_load_motor_configs();
-
-  /// @brief Retrieves information about 'Goal_XXX' and 'Present_XXX' registers
-  /// @details Info includes a register's name, address, and data length
-  void robot_init_controlItems();
-
-  /// @brief Creates SyncWrite and SyncRead Handlers to write/read data to multiple motors
-  ///   simultaneously
-  void robot_init_workbench_handlers();
-
-  /// @brief Loads a 'mode_configs' yaml file containing desired operating modes and sets up the
-  ///   motors accordingly
-  void robot_init_operating_modes();
 
   /// @brief Initialize ROS Publishers
   void robot_init_publishers();
