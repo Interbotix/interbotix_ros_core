@@ -2,3 +2,7 @@
 	path = interbotix_ros_xseries/dynamixel_workbench_toolbox
 	url = https://github.com/Interbotix/dynamixel-workbench.git
 	branch = ros2
+[submodule "interbotix_ros_xseries/interbotix_xs_driver"]
+	path = interbotix_ros_xseries/interbotix_xs_driver
+	url = https://github.com/Interbotix/interbotix_xs_driver.git
+	branch = ros2
