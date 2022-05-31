@@ -21,9 +21,9 @@ jobs:
         env:
           - {ROS_DISTRO: melodic, ROS_REPO: main, BUILDER: catkin_tools}
           - {ROS_DISTRO: melodic, ROS_REPO: main, BUILDER: catkin_make}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v3
       - name: Create src directory for xs
         run: |
           rm interbotix_ros_xseries/CATKIN_IGNORE
