@@ -492,7 +492,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   try
   {
     mode_configs = YAML::LoadFile(mode_configs_file.c_str());
-    ROS_INFO("Loaded mode configs from '%s'.", mode_configs_file.c_str());
+    ROS_INFO("[xs_sdk] Loaded mode configs from '%s'.", mode_configs_file.c_str());
   }
   catch (YAML::BadFile &error)
   {
