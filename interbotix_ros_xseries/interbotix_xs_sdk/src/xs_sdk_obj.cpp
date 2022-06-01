@@ -653,8 +653,10 @@ bool InterbotixRobotXS::robot_ping_motors(void)
 /// @param <bool> [out] - True if all register values were written successfully; False otherwise
 bool InterbotixRobotXS::robot_load_motor_configs(void)
 {
-  if (ros::param::param<bool>("~load_configs", LOAD_CONFIGS, true))
+  ros::param::param<bool>("~load_configs", load_configs, true);
+  if (load_configs)
   {
+    ROS_INFO("[xs_sdk] Writing startup register values to EEPROM.");
     for (auto const& motor_info:motor_info_vec)
     {
       if (!dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value))
@@ -667,7 +669,7 @@ bool InterbotixRobotXS::robot_load_motor_configs(void)
     }
   }
   else
-    ROS_INFO("[xs_sdk] Skipping Load Configs...");
+    ROS_INFO("[xs_sdk] Skipping writing startup register values to EEPROM.");
   return true;
 }
 

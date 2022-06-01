@@ -32,7 +32,6 @@ static const std::string PROFILE_TYPE = "velocity";                     // Defau
 static const int32_t PROFILE_VELOCITY = 0;                              // Allow joint velocity to be infinite when in position control mode - makes robot very reactive to joint commands
 static const int32_t PROFILE_ACCELERATION = 0;                          // Allow joint acceleration to be infinite when in position control mode - makes robot very reactive to joint commands
 static const bool TORQUE_ENABLE = true;                                 // Torque motor on by default
-static bool LOAD_CONFIGS = true;                                        // Get motor configurations by default
 
 struct JointGroup                                                       // Struct to hold multiple joints that represent a group
 {
@@ -170,6 +169,7 @@ private:
   int timer_hz;                                                                 // Frequency at which the ROS Timer publishing joint states should run
   bool pub_states;                                                              // Boolean that determines if joint states should be published;
   bool execute_joint_traj;                                                      // Boolean that changes value when a JointTrajectoryCommand begins and ends execution
+  bool load_configs = true;                                                     // Load motor configurations by default
   JointGroup *all_ptr;                                                          // Pointer to the 'all' group (makes updating joint states more efficient)
   DynamixelWorkbench dxl_wb;                                                    // DynamixelWorkbench object used to easily communicate with any Dynamixel servo
   YAML::Node motor_configs;                                                     // Holds all the information in the motor_configs YAML file
