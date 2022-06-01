@@ -636,14 +636,14 @@ bool InterbotixRobotXS::robot_ping_motors(void)
     if(!dxl_wb.ping(motor.second.motor_id, &model_number))
     {
       ROS_ERROR(
-        "[xs_sdk] Can't find Dynamixel ID '%d',\tJoint Name : '%s'", 
+        "[xs_sdk] Can't find Dynamixel ID '%d',\tJoint Name : '%s'.",
         motor.second.motor_id, motor.first.c_str());
       return false;
     }
-    else 
+    else
       ROS_INFO(
-        "[xs_sdk] Found Dynamixel ID : %d,\tModel Number : %d,\tJoint Name : %s", 
-        motor.second.motor_id, model_number, motor.first.c_str());
+        "[xs_sdk] Found Dynamixel ID : '%d',\tModel : '%s',\tJoint Name : '%s'.",
+        motor.second.motor_id, dxl_wb.getModelName(motor.second.motor_id), motor.first.c_str());
     dxl_wb.torque(motor.second.motor_id, false);
   }
   return true;
