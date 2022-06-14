@@ -10,11 +10,10 @@ int main( int argc, char** argv )
         ros::spin();
     else
     {
-        ROS_ERROR(
+        ROS_FATAL(
             "[xs_sdk] For troubleshooting, please see "
-            "https://www.trossenrobotics.com/docs/interbotix_xsarms/troubleshooting/index.html");
+            "'https://www.trossenrobotics.com/docs/interbotix_xsarms/troubleshooting/index.html'");
         ros::shutdown();
-        
     }
     return 0;
 }

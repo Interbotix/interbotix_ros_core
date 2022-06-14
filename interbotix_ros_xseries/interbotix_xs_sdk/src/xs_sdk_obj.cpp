@@ -20,14 +20,14 @@ InterbotixRobotXS::InterbotixRobotXS(ros::NodeHandle *node_handle, bool &success
   if (!robot_ping_motors())
   {
     success = false;
-    ROS_ERROR("[xs_sdk] Failed to find all motors specified in the motor_config file. Shutting down...");
+    ROS_FATAL("[xs_sdk] Failed to find all motors specified in the motor_config file after three attempts. Shutting down...");
     return;
   }
 
   if (!robot_load_motor_configs())
   {
     success = false;
-    ROS_ERROR("[xs_sdk] Failed to write configurations to all motors. Shutting down...");
+    ROS_FATAL("[xs_sdk] Failed to write configurations to all motors. Shutting down...");
     return;
   }
 
@@ -478,13 +478,13 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
   catch (YAML::BadFile &error)
   {
-    ROS_ERROR("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
-    ROS_ERROR("[xs_sdk] YAML Error: '%s'", error.what());
+    ROS_FATAL("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_FATAL("[xs_sdk] YAML Error: '%s'", error.what());
     return false;
   }
   if (motor_configs.IsNull())
   {
-    ROS_ERROR("[xs_sdk] Motor Config file was not found. Shutting down...");
+    ROS_FATAL("[xs_sdk] Motor Config file was not found. Shutting down...");
     return false;
   }
 
@@ -620,33 +620,41 @@ bool InterbotixRobotXS::robot_init_port(void)
 {
   if (!dxl_wb.init(port.c_str(), BAUDRATE))
   {
-    ROS_ERROR("[xs_sdk] Failed to open port at %s. Shutting down...", port.c_str());
+    ROS_FATAL("[xs_sdk] Failed to open port at %s. Shutting down...", port.c_str());
     return false;
   }
   return true;
 }
 
 /// @brief Pings all motors to make sure they can be found
-/// @param <bool> [out] - True if all motors were found; False otherwise
 bool InterbotixRobotXS::robot_ping_motors(void)
 {
-  for (auto const& motor:motor_map)
+  bool found_all_motors = true;
+  for (size_t cntr_ping_motors=0; cntr_ping_motors<3; cntr_ping_motors++)
   {
-    uint16_t model_number = 0;
-    if(!dxl_wb.ping(motor.second.motor_id, &model_number))
+    ROS_INFO(
+      "[xs_sdk] Pinging all motors specified in the motor_config file. (Attempt %ld)",
+      cntr_ping_motors+1);
+    for (auto const& motor:motor_map)
     {
-      ROS_ERROR(
-        "[xs_sdk] Can't find Dynamixel ID '%d',\tJoint Name : '%s'.",
-        motor.second.motor_id, motor.first.c_str());
-      return false;
+      if(!dxl_wb.ping(motor.second.motor_id))
+      {
+        ROS_ERROR(
+          "[xs_sdk]\tCan't find DYNAMIXEL ID: %2.d, Joint Name: '%s'.",
+          motor.second.motor_id, motor.first.c_str());
+        found_all_motors = false;
+      }
+      else
+        ROS_INFO(
+          "[xs_sdk]\tFound DYNAMIXEL ID: %2.d, Model: '%s', Joint Name: '%s'.",
+          motor.second.motor_id, dxl_wb.getModelName(motor.second.motor_id), motor.first.c_str());
+      dxl_wb.torque(motor.second.motor_id, false);
     }
-    else
-      ROS_INFO(
-        "[xs_sdk] Found Dynamixel ID : '%d',\tModel : '%s',\tJoint Name : '%s'.",
-        motor.second.motor_id, dxl_wb.getModelName(motor.second.motor_id), motor.first.c_str());
-    dxl_wb.torque(motor.second.motor_id, false);
+
+    if (found_all_motors)
+      continue;
   }
-  return true;
+  return found_all_motors;
 }
 
 /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
@@ -656,7 +664,9 @@ bool InterbotixRobotXS::robot_load_motor_configs(void)
   ros::param::param<bool>("~load_configs", load_configs, true);
   if (load_configs)
   {
-    ROS_INFO("[xs_sdk] Writing startup register values to EEPROM.");
+    ROS_INFO(
+      "[xs_sdk] Writing startup register values to EEPROM. This only needs to be done once on a "
+      "robot. Set the `~load_configs` parameter to false from now on.");
     for (auto const& motor_info:motor_info_vec)
     {
       if (!dxl_wb.itemWrite(motor_info.motor_id, motor_info.reg.c_str(), motor_info.value))

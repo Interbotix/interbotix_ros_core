@@ -214,7 +214,6 @@ private:
   bool robot_init_port(void);
 
   /// @brief Pings all motors to make sure they can be found
-  /// @param <bool> [out] - True if all motors were found; False otherwise
   bool robot_ping_motors(void);
 
   /// @brief Writes some 'startup' EEPROM register values to the Dynamixel servos
