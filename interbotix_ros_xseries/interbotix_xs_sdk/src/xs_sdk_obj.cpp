@@ -630,18 +630,19 @@ bool InterbotixRobotXS::robot_init_port(void)
 bool InterbotixRobotXS::robot_ping_motors(void)
 {
   bool found_all_motors = true;
+  const char * log;
   for (size_t cntr_ping_motors=0; cntr_ping_motors<3; cntr_ping_motors++)
   {
     ROS_INFO(
-      "[xs_sdk] Pinging all motors specified in the motor_config file. (Attempt %ld)",
+      "[xs_sdk] Pinging all motors specified in the motor_config file. (Attempt %ld/3)",
       cntr_ping_motors+1);
     for (auto const& motor:motor_map)
     {
-      if(!dxl_wb.ping(motor.second.motor_id))
+      if(!dxl_wb.ping(motor.second.motor_id, &log))
       {
         ROS_ERROR(
-          "[xs_sdk]\tCan't find DYNAMIXEL ID: %2.d, Joint Name: '%s'.",
-          motor.second.motor_id, motor.first.c_str());
+          "[xs_sdk]\tCan't find DYNAMIXEL ID: %2.d, Joint Name: '%s':\n\t\t  '%s'",
+          motor.second.motor_id, motor.first.c_str(), log);
         found_all_motors = false;
       }
       else
@@ -650,9 +651,8 @@ bool InterbotixRobotXS::robot_ping_motors(void)
           motor.second.motor_id, dxl_wb.getModelName(motor.second.motor_id), motor.first.c_str());
       dxl_wb.torque(motor.second.motor_id, false);
     }
-
     if (found_all_motors)
-      continue;
+      return found_all_motors;
   }
   return found_all_motors;
 }
