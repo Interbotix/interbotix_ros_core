@@ -45,8 +45,6 @@ InterbotixRobotXS::InterbotixRobotXS(
     success = false;
     return;
   }
-  RCLCPP_INFO(LOGGER, "InterbotixDriverXS is up!");
-
   robot_init_publishers();
   robot_init_subscribers();
   robot_init_services();
@@ -59,13 +57,17 @@ InterbotixRobotXS::~InterbotixRobotXS() {}
 
 bool InterbotixRobotXS::robot_init_driver()
 {
-  bool success = false;
-  xs_driver = std::make_shared<InterbotixDriverXS>(
-    success,
-    filepath_motor_configs,
-    filepath_mode_configs,
-    write_eeprom_on_startup);
-  return success;
+  try {
+    xs_driver = std::make_unique<InterbotixDriverXS>(
+      filepath_motor_configs,
+      filepath_mode_configs,
+      write_eeprom_on_startup,
+      xs_driver_logging_level);
+  } catch (const std::runtime_error & e) {
+    RCLCPP_FATAL(LOGGER, "InterbotixDriverXS initialization failed: '%s'.", e.what());
+    return false;
+  }
+  return true;
 }
 
 void InterbotixRobotXS::robot_init_parameters()
@@ -74,11 +76,13 @@ void InterbotixRobotXS::robot_init_parameters()
   this->declare_parameter<std::string>("mode_configs", "");
   this->declare_parameter<bool>("load_configs", false);
   this->declare_parameter<std::string>("robot_description", "");
+  this->declare_parameter<std::string>("xs_driver_logging_level", "INFO");
 
   this->get_parameter("motor_configs", filepath_motor_configs);
   this->get_parameter("mode_configs", filepath_mode_configs);
   this->get_parameter("load_configs", write_eeprom_on_startup);
-  YAML::Node pub_configs = motor_configs["joint_state_publisher"];
+  this->get_parameter("xs_driver_logging_level", xs_driver_logging_level);
+  YAML::Node pub_configs = YAML::LoadFile(filepath_motor_configs)["joint_state_publisher"];
   timer_hz = pub_configs["update_rate"].as<int>(100);
   pub_states = pub_configs["publish_states"].as<bool>(true);
   js_topic = pub_configs["topic_name"].as<std::string>("joint_states");
@@ -140,10 +144,8 @@ void InterbotixRobotXS::robot_init_timers()
   using namespace std::chrono_literals;
   if (timer_hz != 0) {
     // timer that updates the joint states with a period of 1/timer_hz
-    std::chrono::nanoseconds update_rate_in_ms = std::chrono::nanoseconds(
-      static_cast<int>(1.0 / (timer_hz) * 1000000000.0));
     tmr_joint_states = this->create_wall_timer(
-      update_rate_in_ms,
+      std::chrono::nanoseconds(static_cast<int>(1.0e9 / (timer_hz))),
       std::bind(
         &InterbotixRobotXS::robot_update_joint_states,
         this));
@@ -164,12 +166,12 @@ void InterbotixRobotXS::robot_wait_for_joint_states()
 
 void InterbotixRobotXS::robot_sub_command_group(const JointGroupCommand::SharedPtr msg)
 {
-  xs_driver->robot_write_commands(msg->name, msg->cmd);
+  xs_driver->write_commands(msg->name, msg->cmd);
 }
 
 void InterbotixRobotXS::robot_sub_command_single(const JointSingleCommand::SharedPtr msg)
 {
-  xs_driver->robot_write_joint_command(msg->name, msg->cmd);
+  xs_driver->write_joint_command(msg->name, msg->cmd);
 }
 
 void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::SharedPtr msg)
@@ -195,7 +197,7 @@ void InterbotixRobotXS::robot_sub_command_traj(const JointTrajectoryCommand::Sha
   if (timer_hz != 0 && msg->traj.points[0].positions.size() == joint_names.size()) {
     for (size_t i{0}; i < joint_names.size(); i++) {
       float expected_state = msg->traj.points[0].positions.at(i);
-      float actual_state = joint_states.position.at(js_index_map[joint_names.at(i)]);
+      float actual_state = joint_states.position.at(xs_driver->get_js_index(joint_names.at(i)));
       if (!(fabs(expected_state - actual_state) < 0.01)) {
         RCLCPP_WARN(
           LOGGER,
@@ -225,11 +227,11 @@ bool InterbotixRobotXS::robot_srv_torque_enable(
   const std::shared_ptr<TorqueEnable::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
 
-  xs_driver->robot_torque_enable(req->cmd_type.c_str(), req->name, req->enable);
+  xs_driver->torque_enable(req->cmd_type, req->name, req->enable);
   return true;
 }
 
@@ -239,12 +241,12 @@ bool InterbotixRobotXS::robot_srv_reboot_motors(
   const std::shared_ptr<Reboot::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
 
-  xs_driver->robot_reboot_motors(
-    req->cmd_type.c_str(),
+  xs_driver->reboot_motors(
+    req->cmd_type,
     req->name,
     req->enable,
     req->smart_reboot);
@@ -257,7 +259,7 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(
   std::shared_ptr<RobotInfo::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
   bool urdf_exists = false;
@@ -272,6 +274,7 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(
     urdf_exists = true;
   }
 
+  // get names, profile type, and operating mode
   if (req->cmd_type == cmd_type::GROUP) {
     res->joint_names = xs_driver->get_group_info(req->name)->joint_names;
     res->profile_type = xs_driver->get_group_info(req->name)->profile_type;
@@ -282,20 +285,25 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(
     res->mode = xs_driver->get_motor_info(req->name)->mode;
   }
 
+  // get the number of joints in the group or single
   res->num_joints = res->joint_names.size();
 
   for (auto & name : res->joint_names) {
+    // get this joint's ID
     res->joint_ids.push_back(xs_driver->get_motor_info(name)->motor_id);
     if (xs_driver->is_motor_gripper(name) > 0) {
-      res->joint_sleep_positions.push_back(
-        xs_driver->robot_convert_angular_position_to_linear(name, 0));
+      // if the joint is a gripper, add left finger joint info
+      res->joint_sleep_positions.push_back(xs_driver->convert_angular_position_to_linear(name, 0));
+      // replace gripper joint name with name of left finger joint
       name = xs_driver->get_gripper_info(name)->left_finger;
     } else {
-      res->joint_sleep_positions.push_back(xs_driver->get_sleep_position(name));
+      res->joint_sleep_positions.push_back(xs_driver->get_joint_sleep_position(name));
     }
 
-    res->joint_state_indices.push_back(js_index_map[name]);
+    // get this joint's joint state index
+    res->joint_state_indices.push_back(xs_driver->get_js_index(name));
     if (urdf_exists) {
+      // get joint limits if the URDF exists
       ptr = model.getJoint(name);
       res->joint_lower_limits.push_back(ptr->limits->lower);
       res->joint_upper_limits.push_back(ptr->limits->upper);
@@ -303,8 +311,10 @@ bool InterbotixRobotXS::robot_srv_get_robot_info(
     }
   }
   if (req->name != "all") {
+    // if the request name is not "all", return the name from the request
     res->name.push_back(req->name);
   } else {
+    // if the request name is "all", return all group names
     for (auto const &[group_name, _] : *xs_driver->get_group_map()) {
       res->name.push_back(group_name);
     }
@@ -318,15 +328,15 @@ bool InterbotixRobotXS::robot_srv_set_operating_modes(
   const std::shared_ptr<OperatingModes::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
 
-  xs_driver->robot_set_operating_modes(
-    req->cmd_type.c_str(),
+  xs_driver->set_operating_modes(
+    req->cmd_type,
     req->name,
     req->mode,
-    req->profile_type.c_str(),
+    req->profile_type,
     req->profile_velocity,
     req->profile_acceleration);
   return true;
@@ -338,7 +348,7 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(
   const std::shared_ptr<MotorGains::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
 
@@ -350,7 +360,7 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(
     req->k2,
     req->kp_vel,
     req->ki_vel};
-  xs_driver->robot_set_motor_pid_gains(req->cmd_type.c_str(), req->name, gains);
+  xs_driver->set_motor_pid_gains(req->cmd_type, req->name, gains);
   return true;
 }
 
@@ -360,11 +370,11 @@ bool InterbotixRobotXS::robot_srv_set_motor_registers(
   const std::shared_ptr<RegisterValues::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
 
-  xs_driver->robot_set_motor_registers(req->cmd_type.c_str(), req->name, req->reg, req->value);
+  xs_driver->set_motor_registers(req->cmd_type, req->name, req->reg, req->value);
   return true;
 }
 
@@ -374,11 +384,11 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(
   std::shared_ptr<RegisterValues::Response> res)
 {
   (void)request_header;
-  if (!robot_srv_validate(req->cmd_type.c_str(), req->name)) {
+  if (!robot_srv_validate(req->cmd_type, req->name)) {
     return false;
   }
 
-  xs_driver->robot_get_motor_registers(req->cmd_type.c_str(), req->name, req->reg, res->values);
+  xs_driver->get_motor_registers(req->cmd_type, req->name, req->reg, res->values);
   return true;
 }
 
@@ -426,54 +436,55 @@ void InterbotixRobotXS::robot_execute_trajectory()
         this));
   }
 
-  // get the mode
-  const std::string mode = group_map[joint_traj_cmd->name].mode;
 
   // write commands to the motors depending on cmd_type and mode
   if (joint_traj_cmd->cmd_type == cmd_type::GROUP) {
+    // get the mode
+    const std::string mode = xs_driver->get_group_info(joint_traj_cmd->name)->mode;
     if (
       (mode == mode::POSITION) ||
       (mode == mode::EXT_POSITION) ||
       (mode == mode::CURRENT_BASED_POSITION) ||
       (mode == mode::LINEAR_POSITION))
     {
+      // position commands
       std::vector<float> commands(
         joint_traj_cmd->traj.points[cntr].positions.begin(),
         joint_traj_cmd->traj.points[cntr].positions.end());
-      xs_driver->robot_write_commands(joint_traj_cmd->name, commands);
-    } else if (group_map[joint_traj_cmd->name].mode == mode::VELOCITY) {
+      xs_driver->write_commands(joint_traj_cmd->name, commands);
+    } else if (mode == mode::VELOCITY) {
+      // velocity commands
       std::vector<float> commands(
         joint_traj_cmd->traj.points[cntr].velocities.begin(),
         joint_traj_cmd->traj.points[cntr].velocities.end());
-      xs_driver->robot_write_commands(joint_traj_cmd->name, commands);
-    } else if ( // NOLINT https://github.com/ament/ament_lint/issues/158
-      (group_map[joint_traj_cmd->name].mode == mode::PWM) ||
-      (group_map[joint_traj_cmd->name].mode == mode::CURRENT))
-    {
+      xs_driver->write_commands(joint_traj_cmd->name, commands);
+    } else if ((mode == mode::PWM) || (mode == mode::CURRENT)) {
+      // effort commands
       std::vector<float> commands(
         joint_traj_cmd->traj.points[cntr].effort.begin(),
         joint_traj_cmd->traj.points[cntr].effort.end());
-      xs_driver->robot_write_commands(joint_traj_cmd->name, commands);
+      xs_driver->write_commands(joint_traj_cmd->name, commands);
     }
   } else if (joint_traj_cmd->cmd_type == cmd_type::SINGLE) {
+    const std::string mode = xs_driver->get_motor_info(joint_traj_cmd->name)->mode;
     if (
       (mode == mode::POSITION) ||
       (mode == mode::EXT_POSITION) ||
       (mode == mode::CURRENT_BASED_POSITION) ||
       (mode == mode::LINEAR_POSITION))
     {
-      xs_driver->robot_write_joint_command(
+      // position commands
+      xs_driver->write_joint_command(
         joint_traj_cmd->name,
         joint_traj_cmd->traj.points[cntr].positions.at(0));
-    } else if (motor_map[joint_traj_cmd->name].mode == mode::VELOCITY) {
-      xs_driver->robot_write_joint_command(
+    } else if (mode == mode::VELOCITY) {
+      // velocity commands
+      xs_driver->write_joint_command(
         joint_traj_cmd->name,
         joint_traj_cmd->traj.points[cntr].velocities.at(0));
-    } else if ( // NOLINT https://github.com/ament/ament_lint/issues/158
-      (motor_map[joint_traj_cmd->name].mode == mode::PWM) ||
-      (motor_map[joint_traj_cmd->name].mode == mode::CURRENT))
-    {
-      xs_driver->robot_write_joint_command(
+    } else if ((mode == mode::PWM) || (mode == mode::CURRENT)) {
+      // effort commands
+      xs_driver->write_joint_command(
         joint_traj_cmd->name,
         joint_traj_cmd->traj.points[cntr].effort.at(0));
     }
@@ -485,18 +496,17 @@ void InterbotixRobotXS::robot_update_joint_states()
 {
   sensor_msgs::msg::JointState joint_state_msg;
 
-  xs_driver->get_joint_names(joint_state_msg.name);
+  joint_state_msg.name = xs_driver->get_all_joint_names();
 
-  xs_driver->robot_read_joint_states();
-  xs_driver->robot_get_joint_states(
+  xs_driver->get_joint_states(
     "all",
     &joint_state_msg.position,
     &joint_state_msg.velocity,
     &joint_state_msg.effort);
-  for (auto const & name : *xs_driver->get_gripper_order()) {
+  for (auto const & name : xs_driver->get_gripper_order()) {
     joint_state_msg.name.push_back(xs_driver->get_gripper_info(name)->left_finger.c_str());
     joint_state_msg.name.push_back(xs_driver->get_gripper_info(name)->right_finger.c_str());
-    float pos = xs_driver->robot_convert_angular_position_to_linear(
+    float pos = xs_driver->convert_angular_position_to_linear(
       name, joint_state_msg.position.at(xs_driver->get_gripper_info(name)->js_index));
     joint_state_msg.position.push_back(pos);
     joint_state_msg.position.push_back(-pos);

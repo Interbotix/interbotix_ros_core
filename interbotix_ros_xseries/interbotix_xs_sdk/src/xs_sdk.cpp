@@ -40,7 +40,7 @@ int main(int argc, char ** argv)
     exec.add_node(node);
     exec.spin();
   } else {
-    RCLCPP_ERROR(
+    RCLCPP_FATAL(
       interbotix_xs::LOGGER,
       "For troubleshooting, please see "
       "'https://www.trossenrobotics.com/docs/interbotix_xsarms/troubleshooting/index.html'.");

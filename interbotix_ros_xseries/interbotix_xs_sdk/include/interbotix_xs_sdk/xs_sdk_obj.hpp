@@ -43,6 +43,7 @@
 #include "sensor_msgs/msg/joint_state.hpp"
 #include "interbotix_xs_driver/xs_common.hpp"
 #include "interbotix_xs_driver/xs_driver.hpp"
+#include "interbotix_xs_driver/xs_logging.hpp"
 
 #include "interbotix_xs_msgs/srv/reboot.hpp"
 #include "interbotix_xs_msgs/srv/robot_info.hpp"
@@ -94,17 +95,8 @@ private:
   // Boolean that changes value when a JointTrajectoryCommand begins and ends execution
   bool execute_joint_traj;
 
-  // Pointer to the 'all' group (makes updating joint states more efficient)
-  JointGroup * all_ptr;
-
   // InterbotixDriverXS object used to talk to the lower-level XS Interfaces
-  std::shared_ptr<InterbotixDriverXS> xs_driver;
-
-  // Holds all the information in the motor_configs YAML file
-  YAML::Node motor_configs;
-
-  // Holds all the information in the mode_configs YAML file
-  YAML::Node mode_configs;
+  std::unique_ptr<InterbotixDriverXS> xs_driver;
 
   // ROS Publisher responsible for publishing joint states
   rclcpp::Publisher<sensor_msgs::msg::JointState>::SharedPtr pub_joint_states;
@@ -154,14 +146,8 @@ private:
   // Indicating the trajectory start time
   rclcpp::Time traj_start_time;
 
-  // Inficating whether to set up relative time.
-  bool set_up_start_time;
-
   // Trajectory counter
   size_t cntr;
-
-  // Holds the USB port name that connects to the U2D2
-  std::string port = DEFAULT_PORT;
 
   // Desired JointState topic name
   std::string js_topic;
@@ -175,41 +161,8 @@ private:
   // Whether or not to write to the EEPROM values on startup
   bool write_eeprom_on_startup;
 
-  // Vector containing all the desired EEPROM register values to command the motors at startup
-  std::vector<MotorRegVal> motor_info_vec;
-
-  // Vector containing the order in which multiple grippers (if present) are published in the
-  // JointState message
-  std::vector<std::string> gripper_order;
-
-  // Dictionary mapping register names to information about them (like 'address' and expected 'data
-  // length')
-  std::unordered_map<std::string, const ControlItem *> control_items;
-
-  // Dictionary mapping a joint's name with its 'sleep' position
-  std::unordered_map<std::string, float> sleep_map;
-
-  // Dictionary mapping a joint group's name with information about it (as defined in the
-  // JointGroup struct)
-  std::unordered_map<std::string, JointGroup> group_map;
-
-  // Dictionary mapping a motor's name with information about it (as defined in the MotorState
-  // struct)
-  std::unordered_map<std::string, MotorState> motor_map;
-
-  // Dictionary mapping a motor's name with the names of its shadows - including itself
-  std::unordered_map<std::string, std::vector<std::string>> shadow_map;
-
-  // Dictionary mapping the name of either servo in a 2in1 motor with the other one (henceforth
-  // known as 'sister')
-  std::unordered_map<std::string, std::vector<std::string>> sister_map;
-
-  // Dictionary mapping the name of a gripper motor with information about it (as defined in the
-  // Gripper struct)
-  std::unordered_map<std::string, Gripper> gripper_map;
-
-  // Dictionary mapping the name of a joint with its position in the JointState 'name' list
-  std::unordered_map<std::string, size_t> js_index_map;
+  // The xs_driver logging level as a string (to be set from ROS parameters)
+  std::string xs_driver_logging_level;
 
   /// @brief Loads the X-Series robot driver
   /// @returns True if the driver was loaded successfully, False otherwise
