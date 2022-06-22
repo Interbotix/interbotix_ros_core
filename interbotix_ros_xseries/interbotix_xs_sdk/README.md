@@ -2,11 +2,11 @@
 ![xs_sdk_banner](images/xs_sdk_banner.png)
 
 ## Overview
-This package contains two driver nodes responsible for controlling the many X-Series platforms sold by Interbotix. Descriptions for both of them are below.
+This package contains two driver nodes responsible for controlling the many Interbotix X-Series platforms sold by Trossen Robotics. Descriptions for both of them are below.
 
-The first one is loosely based on the [dynamixel_workbench_controllers.cpp](https://github.com/ROBOTIS-GIT/dynamixel-workbench/blob/master/dynamixel_workbench_controllers/src/dynamixel_workbench_controllers.cpp) file created by [ROBOTIS](http://www.robotis.us/) to control a slew of their Dynamixel servo motors. Also written in C++, the node presents a ROS interface that is built on top of the [dynamixel_workbench_toolbox](https://github.com/ROBOTIS-GIT/dynamixel-workbench/tree/master/dynamixel_workbench_toolbox), a C++ library provided by ROBOTIS containing useful functions that utilize their communication protocol. Feel free to take a look at their [API](http://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_workbench/#api-references) to get a better understanding of how their functions work. Also, take a look at the *interbotix_xs_sdk*'s header file [here](include/interbotix_xs_sdk/xs_sdk_obj.h) which contains the various ROS Publishers, Subscribers, Timers, etc... all fully documented. In general, there are two ways this node can be used. One is to command the robot via the ROS topics and/or services. In this manner, the developer can code in any language that is capable of sending a ROS message. The other approach is to 'skip' the ROS topic layer and use the publicly available functions directly. All the user would need to do is create an instance of the 'InterbotixRobotXS' class as shown [here](src/xs_sdk.cpp) to take advantage of these functions.
+The **xs_sdk** node is a ROS wrapper for the [Interbotix X-Series Driver](https://github.com/Interbotix/interbotix_xs_driver). This allows robots based on the X-Series servos to be controlled through higher-level ROS commands. The X-Series driver is loosely based on the [dynamixel_workbench_controllers.cpp](https://github.com/ROBOTIS-GIT/dynamixel-workbench/blob/master/dynamixel_workbench_controllers/src/dynamixel_workbench_controllers.cpp) file created by [ROBOTIS](http://www.robotis.us/). Feel free to take a look at their [API](http://emanual.robotis.com/docs/en/software/dynamixel/dynamixel_workbench/#api-references) to get a better understanding of how their functions work. Also, take a look at the *interbotix_xs_sdk*'s header file [here](include/interbotix_xs_sdk/xs_sdk_obj.hpp) which contains the fully documented ROS features like publishers, subscribers, timers, and services.
 
-The second driver node is meant to simulate control of Dynamixel servos using RViz. It contains the same ROS interfaces as the actual driver and can be used to 'test-out' code before working with the physical motors. All higher level code or ROS packages can stay exactly the same (no code needs to be changed to make them compatible with the simulator). It is written in Python, and the documented code can be found [here](scripts/xs_sdk_sim). It does have some limitations which are described in the 'Structure' section below.
+The **xs_sdk_sim** node is meant to simulate control of DYNAMIXEL servos which can then be visualized RViz. It contains the same ROS interfaces as the actual driver and can be used to 'test-out' code before working with the physical motors. All higher level code or ROS packages can stay exactly the same (no code needs to be changed to make them compatible with the simulator). It is written in Python, and the documented code can be found [here](scripts/xs_sdk_sim.py). It does have some limitations which are described in the 'Structure' section below.
 
 ## Structure
 
@@ -55,8 +55,9 @@ The *interbotix_xs_sdk* package contains the actual driver node called **xs_sdk*
 - `motor_configs` - the file path to the 'motor config' YAML file; refer to the [Motor Config Template](config/motor_configs_template.yaml) file for details.
 - `mode_configs` - the file path to the 'mode config' YAML file; refer to the [Mode Config Template](config/mode_configs_template.yaml) file for details.
 - `load_configs` - a boolean that specifies whether or not the initial register values (under the 'motors' heading) in a motor config file should be written to the motors; as the values being written are stored in each motor's EEPROM (which means the values are retained even after a power cycle), this can be set to 'false' after the first time using the robot. Setting to 'false' also shortens the node startup time by a few seconds and preserves the life of the EEPROM.
+- `xs_driver_logging_level` - a string value of `DEBUG`, `INFO`, `WARN`, `ERROR`, or `FATAL` that sets the logging level of the X-Series Driver.
 
-  **Simulation:** the `load_configs` parameter is unused.
+  **Simulation:** the `load_configs` and `xs_driver_logging_level` parameters are unused.
 
 ## Usage
 
