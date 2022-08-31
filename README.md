@@ -15,13 +15,17 @@ Coming soon...
 
 Support-level software can be found in the [interbotix_ros_toolboxes](https://github.com/Interbotix/interbotix_ros_toolboxes) repository
 
-### Build Status
+### CI Status
 
-#### X-Series Core Build Status
+#### X-Series Core CI
 
-[![build-xs-melodic](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-melodic.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-melodic.yaml)
-[![build-xs-noetic](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-noetic.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-noetic.yaml)
-[![build-xs-galactic](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-galactic.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-galactic.yaml)
+| ROS Distro | X-Series ROS Core Build |
+| :------- | :------- |
+| ROS 1 Melodic | [![build-xs-melodic](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-melodic.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-melodic.yaml) |
+| ROS 1 Noetic | [![build-xs-noetic](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-noetic.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-noetic.yaml) |
+| ROS 2 Galactic | [![build-xs-galactic](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-galactic.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-galactic.yaml) |
+| ROS 2 Humble | [![build-xs-humble](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-humble.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-humble.yaml) |
+| ROS 2 Rolling | [![build-xs-rolling](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-rolling.yaml/badge.svg)](https://github.com/Interbotix/interbotix_ros_core/actions/workflows/xs-rolling.yaml) |
 
 ## Repo Structure
 ```
