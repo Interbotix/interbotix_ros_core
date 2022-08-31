@@ -1,12 +1,12 @@
-name: build-xs-galactic
+name: build-xs-rolling
 
 on:
   push:
     branches:
-      - galactic
+      - rolling
   pull_request:
     branches:
-      - galactic
+      - rolling
   workflow_dispatch:
 
 defaults:
@@ -14,12 +14,12 @@ defaults:
     shell: bash
 
 jobs:
-  xs-galactic:
+  xs-rolling:
     strategy:
       matrix:
         env:
-          - {ROS_DISTRO: galactic, ROS_REPO: main}
-    runs-on: ubuntu-20.04
+          - {ROS_DISTRO: rolling, ROS_REPO: main}
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
         with:

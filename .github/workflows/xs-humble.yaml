@@ -4,11 +4,9 @@ on:
   push:
     branches:
       - humble
-      - ros2-devel
   pull_request:
     branches:
       - humble
-      - ros2-devel
   workflow_dispatch:
 
 defaults:
