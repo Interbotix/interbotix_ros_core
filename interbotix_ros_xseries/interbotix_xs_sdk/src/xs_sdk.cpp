@@ -43,7 +43,7 @@ int main(int argc, char ** argv)
     RCLCPP_FATAL(
       interbotix_xs::LOGGER,
       "For troubleshooting, please see "
-      "'https://www.trossenrobotics.com/docs/interbotix_xsarms/troubleshooting/index.html'.");
+      "'https://docs.trossenrobotics.com/interbotix_xsarms_docs/troubleshooting.html'.");
     rclcpp::shutdown();
     return 1;
   }
