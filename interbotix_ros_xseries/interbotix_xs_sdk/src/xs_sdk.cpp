@@ -12,7 +12,7 @@ int main( int argc, char** argv )
     {
         ROS_FATAL(
             "[xs_sdk] For troubleshooting, please see "
-            "'https://www.trossenrobotics.com/docs/interbotix_xsarms/troubleshooting/index.html'");
+            "'https://docs.trossenrobotics.com/interbotix_xsarms_docs/troubleshooting.html'");
         ros::shutdown();
     }
     return 0;
