@@ -32,25 +32,26 @@ body:
         - Ubuntu 18.04
         - Ubuntu 20.04
         - Ubuntu 22.04
-        - Other (Describe in "Anything Else")
+        - Other (Describe in "Additional Info")
     validations:
       required: true
   - type: dropdown
     id: ros_version
     attributes:
       label: ROS Version
-      description: Which version of ROS are you seeing this problem on?
+      description: Which version of ROS are you targeting when asking this question?
       multiple: true
       options:
-        - ROS1 Melodic
-        - ROS1 Noetic
-        - ROS2 Galactic
-        - ROS2 Rolling
-        - Other (Describe in "Anything Else")
+        - ROS 1 Melodic
+        - ROS 1 Noetic
+        - ROS 2 Galactic
+        - ROS 2 Humble
+        - ROS 2 Rolling
+        - Other (Describe in "Additional Info")
     validations:
       required: true
   - type: textarea
     id: other
     attributes:
-      label: Anything Else
+      label: Additional Info
       description: Please enter anything else you'd like to share here.
