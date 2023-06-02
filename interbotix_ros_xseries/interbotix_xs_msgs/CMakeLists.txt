@@ -33,6 +33,7 @@ add_service_files(
     TorqueEnable.srv
     OperatingModes.srv
     RegisterValues.srv
+    GripperCalib.srv
 )
 
 generate_messages(
