@@ -18,6 +18,8 @@
 #include "interbotix_xs_msgs/JointGroupCommand.h"
 #include "interbotix_xs_msgs/JointSingleCommand.h"
 #include "interbotix_xs_msgs/JointTrajectoryCommand.h"
+#include "interbotix_xs_msgs/GripperCalib.h"
+
 
 #define BAUDRATE 1000000                                                // All motors are preset to 1M baud
 #define PORT "/dev/ttyDXL"                                              // Udev rule creates a symlink with this name
@@ -55,7 +57,8 @@ struct Gripper                                                          // Struc
   float horn_radius;                                                    // Distance [m] from the motor horn's center to its edge
   float arm_length;                                                     // Distance [m] from the edge of the motor horn to a finger
   std::string left_finger;                                              // Name of the 'left_finger' joint as defined in the URDF (if present)
-  std::string right_finger;                                             // Name of the 'right_finger' joint as defined in the URDF (if present)
+  std::string right_finger; 
+  float calibration_offset;                                             // Calibration offset fro gripper in angles 
 };
 
 struct MotorInfo                                                        // Struct to hold a desired register value for a given motor
@@ -187,10 +190,12 @@ private:
   ros::ServiceServer srv_get_robot_info;                                        // ROS Service Server used to get general information about the robot (like limits)
   ros::ServiceServer srv_torque_enable;                                         // ROS Service Server used to torque on/off any motor
   ros::ServiceServer srv_reboot_motors;                                         // ROS Service Server used to reboot any motor
+  ros::ServiceServer srv_gripper_calib;                                         // ROS Service Server used to get the gripper calibration value
   ros::Timer tmr_joint_states;                                                  // ROS Timer used to continuously publish joint states
   ros::Timer tmr_joint_traj;                                                    // ROS One-Shot Timer used when commanding motor trajectories
   sensor_msgs::JointState joint_states;                                         // Holds the most recent JointState message
   interbotix_xs_msgs::JointTrajectoryCommand joint_traj_cmd;                     // Holds the most recent JointTrajectoryCommand message
+  float prev_gripper_pos = 0;
 
   std::string port;                                                             // Holds the USB port name that connects to the U2D2
   std::string js_topic;                                                         // Desired JointState topic name
@@ -308,6 +313,17 @@ private:
   /// @returns true if the service call request is valid, false otherwise
   /// @details cmd_type must be 'single' or 'group'; name must be in the group_map or motor_map
   bool robot_srv_validate(const std::string &cmd_type, std::string &name);
+
+
+  /**
+   * @brief Sets the gripper calibration offset to gripper map.
+   * 
+   * @param req  - Consists the offset value 
+   * @param res 
+   * @return true 
+   * @return false 
+   */
+  bool robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res);
 
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
   /// @param e - TimerEvent message [unused]

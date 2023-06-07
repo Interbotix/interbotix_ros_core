@@ -1,4 +1,4 @@
-#include "interbotix_xs_sdk/xs_sdk_obj_pj.h"
+#include "interbotix_xs_sdk/xs_sdk_obj.h"
 #include <iostream>
 #include <fstream>
 /**
@@ -22,9 +22,9 @@ public:
 
     Gripper_calibration(ros::NodeHandle* node_handle, bool &success):node(*node_handle)
     {
-        pub = node.advertise<interbotix_xs_msgs::JointSingleCommand>("/wx250/commands/joint_single",1000);
-        sub = node.subscribe("/wx250/joint_states",1000,&Gripper_calibration::calib_callback,this);
-        client = node.serviceClient<interbotix_xs_msgs::GripperCalib>("/wx250/gripper_calibration");
+        pub = node.advertise<interbotix_xs_msgs::JointSingleCommand>("/px150/commands/joint_single",1000);
+        sub = node.subscribe("/p150/joint_states",1000,&Gripper_calibration::calib_callback,this);
+        client = node.serviceClient<interbotix_xs_msgs::GripperCalib>("/px150/gripper_calibration");
         load_calibration_config(success);
 
         // gripper_command_msg.name = "gripper";
@@ -54,11 +54,7 @@ public:
         for(const auto gripper:all_grippers){
             calibration_joints.push_back(gripper.first.as<std::string>());
         }
-        
-        // for(const auto gripper:all_grippers){
-        //     calibration_joints.push_back(gripper["calibration_offset"].);
-        // }
-        
+                
     }
 
     int find_gripper_index(const std::vector<std::string>& names){
@@ -109,7 +105,7 @@ int main( int argc, char** argv )
     ros::NodeHandle n1;
     bool success = true;
     Gripper_calibration obj(&n1,success);
-    ros::Subscriber sub = n1.subscribe("/wx250/joint_states",1000,&Gripper_calibration::calib_callback,&obj);
+    ros::Subscriber sub = n1.subscribe("/px150/joint_states",1000,&Gripper_calibration::calib_callback,&obj);
     if (success)
         ros::spin();
     else
