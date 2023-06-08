@@ -6,7 +6,7 @@
  * 
  */
 class Gripper_calibration{
-public:
+private:
     ros::NodeHandle node;
     ros::Publisher pub;
     ros::ServiceClient client;
@@ -15,22 +15,30 @@ public:
     interbotix_xs_msgs::JointSingleCommand gripper_command_msg;
     interbotix_xs_msgs::GripperCalib gripper_calib_srv;
     std::string _gripper_name;
-
+public:
     Gripper_calibration(ros::NodeHandle* node_handle, bool &success, std::string robot_name, std::string gripper_name):node(*node_handle),_gripper_name(gripper_name)
     {
         pub = node.advertise<interbotix_xs_msgs::JointSingleCommand>("/"+robot_name+"/commands/joint_single",1000);
         sub = node.subscribe("/"+robot_name+"/joint_states",1000,&Gripper_calibration::calib_callback,this);
         client = node.serviceClient<interbotix_xs_msgs::GripperCalib>("/"+robot_name+"/gripper_calibration");
         calib_complete_srv(0.0,_gripper_name);
-        // load_calibration_config(success, robot_name);
     }
 
-   
-
+    /**
+     * @brief This function returns the gripper index of the _gripper_name
+     * 
+     * @param names 
+     * @return int 
+     */
     int find_gripper_index(const std::vector<std::string>& names){
         return std::find(names.begin(),names.end(),_gripper_name)-names.begin();
     }
     
+    /**
+     * @brief This is the subscriber callback for performing gripper calibration.
+     * 
+     * @param msg 
+     */
     void calib_callback(const sensor_msgs::JointState &msg){
         static int count = 0;
         if(count%40==0){
@@ -47,12 +55,17 @@ public:
                 calib_complete_srv(curr_gripper_pos,_gripper_name);
                 ros::shutdown();
             }
-            // ROS_INFO("Error:%f",curr_gripper_pos-prev_val);
             prev_val = curr_gripper_pos;
         }
         count++;
     }
 
+    /**
+     * @brief ROS Service Client that sends the calibration offset values to SDK
+     * 
+     * @param min_position_offset 
+     * @param _gripper_name 
+     */
     void calib_complete_srv(float min_position_offset, std::string _gripper_name){
         gripper_calib_srv.request.gripper_name = _gripper_name;
         gripper_calib_srv.request.offset = min_position_offset;
@@ -69,10 +82,17 @@ public:
 };
 
 
+/**
+ * @brief This function loads the motor config yaml file and returns a vector of gripper names for calibration
+ * 
+ * @param success 
+ * @param robot_name 
+ * @param yaml_path 
+ * @return std::vector<std::string> 
+ */
 std::vector<std::string> load_calibration_config(bool& success, std::string& robot_name, std::string yaml_path){
     YAML::Node yaml_node;
     std::vector<std::string> calibration_joints;
-    // yaml_path = "/home/pinak/interbotix_ws/src/interbotix_ros_manipulators/interbotix_ros_xsarms/interbotix_xsarm_control/config/px150.yaml";
     try
     {
         yaml_node = YAML::LoadFile(yaml_path);
@@ -102,13 +122,10 @@ int main( int argc, char** argv )
     ros::init(argc, argv, "gripper_calib");
     std::string param1,param2,motor_configs_file;
     ros::NodeHandle n1;
-    // n1.getParam("robot",param1);
-    // n1.getParam("gripper_name",param2);
     ros::param::get("~motor_configs", motor_configs_file);
     ros::param::get("~robot", param1);
-
-    ROS_INFO("Got parameter : %s", param1.c_str());
-    ROS_INFO("Got parameter2 : %s",motor_configs_file.c_str());
+    ROS_INFO("Got parameter 1 : %s", param1.c_str());
+    ROS_INFO("Got parameter 2 : %s",motor_configs_file.c_str());
     bool success = true;
     std::vector<std::string> gripper_names = load_calibration_config(success,param1,motor_configs_file);
     for(const auto name:gripper_names){
