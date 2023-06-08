@@ -484,7 +484,6 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
   if (motor_configs.IsNull())
   {
-    // std::cout<<"Look Here"<<motor_configs_file<<std::endl;
     ROS_FATAL("[xs_sdk] Motor Config file was not found. Shutting down...");
     return false;
   }
@@ -1101,7 +1100,6 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::Regist
 bool InterbotixRobotXS::robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res)
 {
   gripper_map[req.gripper_name].calibration_offset = req.offset;
-  // std::cout<<"Look:"<<gripper_map["gripper"].calibration_offset<<std::endl;
   return true;
 }
 
@@ -1279,7 +1277,6 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
   }
   // Publish the message to the joint_states topic
   joint_state_msg.header.stamp = ros::Time::now();
-  // ROS_INFO("Look:[%f]", gripper_map["gripper"].min_position);
   joint_state_msg.position[5]-= gripper_map["gripper"].calibration_offset;
   joint_states = joint_state_msg;
   if (pub_states) pub_joint_states.publish(joint_state_msg);
