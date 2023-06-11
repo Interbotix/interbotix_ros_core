@@ -37,8 +37,13 @@ set(ROS_DEPENDENCIES
 ## Declare a C++ executable
 ## Specify libraries to link a library or executable target against
 add_executable(xs_sdk src/xs_sdk.cpp src/xs_sdk_obj.cpp)
+add_executable(gripper_calib src/gripper_calib.cpp )
 ament_target_dependencies(xs_sdk ${ROS_DEPENDENCIES})
+ament_target_dependencies(gripper_calib ${ROS_DEPENDENCIES})
+
 target_link_libraries(xs_sdk yaml-cpp)
+target_link_libraries(gripper_calib yaml-cpp)
+
 
 #############
 ## Install ##
@@ -46,6 +51,11 @@ target_link_libraries(xs_sdk yaml-cpp)
 
 install(
   TARGETS xs_sdk
+  DESTINATION lib/${PROJECT_NAME}
+)
+
+install(
+  TARGETS gripper_calib
   DESTINATION lib/${PROJECT_NAME}
 )
 

@@ -51,6 +51,7 @@
 #include "interbotix_xs_msgs/srv/torque_enable.hpp"
 #include "interbotix_xs_msgs/srv/operating_modes.hpp"
 #include "interbotix_xs_msgs/srv/register_values.hpp"
+#include "interbotix_xs_msgs/srv/gripper_calib.hpp"
 #include "interbotix_xs_msgs/msg/joint_group_command.hpp"
 #include "interbotix_xs_msgs/msg/joint_single_command.hpp"
 #include "interbotix_xs_msgs/msg/joint_trajectory_command.hpp"
@@ -70,6 +71,7 @@ using TorqueEnable = interbotix_xs_msgs::srv::TorqueEnable;
 using JointGroupCommand = interbotix_xs_msgs::msg::JointGroupCommand;
 using JointSingleCommand = interbotix_xs_msgs::msg::JointSingleCommand;
 using JointTrajectoryCommand = interbotix_xs_msgs::msg::JointTrajectoryCommand;
+using GripperCalib = interbotix_xs_msgs::srv::GripperCalib;
 
 /// @brief The Interbotix X-Series ROS Node
 class InterbotixRobotXS : public rclcpp::Node
@@ -94,6 +96,9 @@ private:
 
   // Boolean that changes value when a JointTrajectoryCommand begins and ends execution
   bool execute_joint_traj;
+
+  // Map of Calibration offset of gripper
+  std::unordered_map<std::string,float> gripper_offset_map;
 
   // InterbotixDriverXS object used to talk to the lower-level XS Interfaces
   std::unique_ptr<InterbotixDriverXS> xs_driver;
@@ -131,6 +136,9 @@ private:
   // ROS Service Server used to reboot any motor
   rclcpp::Service<Reboot>::SharedPtr srv_reboot_motors;
 
+  // ROS Service Server used to calibrate gripper
+  rclcpp::Service<GripperCalib>::SharedPtr srv_gripper_calib;
+
   // ROS Timer used to continuously publish joint states
   rclcpp::TimerBase::SharedPtr tmr_joint_states;
 
@@ -163,6 +171,14 @@ private:
 
   // The xs_driver logging level as a string (to be set from ROS parameters)
   std::string xs_driver_logging_level;
+
+  /**
+   * @brief Initilizes a map with gripper names and offsets to zero
+   * 
+   * @param driver 
+   * @return std::unordered_map<std::string,float> 
+   */
+  void init_offset_map(std::unique_ptr<InterbotixDriverXS> &driver);
 
   /// @brief Loads the X-Series robot driver
   /// @returns True if the driver was loaded successfully, False otherwise
@@ -266,6 +282,23 @@ private:
     const std::shared_ptr<RegisterValues::Request> req,
     std::shared_ptr<RegisterValues::Response> res);
 
+
+
+  /**
+   * @brief ROS Service for updating gripper calibration offset
+   * 
+   * @param request_header 
+   * @param req 
+   * @param res 
+   * @return true 
+   * @return false 
+   */
+  bool robot_srv_gripper_calib(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<GripperCalib::Request> req,
+    std::shared_ptr<GripperCalib::Response> res);
+
+
   /// @brief Checks service call requests for validity
   /// @param cmd_type request cmd_type field
   /// @param name request name field
@@ -273,6 +306,7 @@ private:
   /// @details cmd_type must be 'CMD_TYPE_SINGLE' or 'CMD_TYPE_GROUP'; name must be in the
   ///   group_map or motor_map
   bool robot_srv_validate(const std::string & cmd_type, const std::string & name);
+
 
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
   void robot_execute_trajectory();

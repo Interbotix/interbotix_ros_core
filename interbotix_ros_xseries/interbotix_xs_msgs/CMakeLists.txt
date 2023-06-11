@@ -32,6 +32,7 @@ set(SRV_FILES
   srv/RegisterValues.srv
   srv/RobotInfo.srv
   srv/TorqueEnable.srv
+  srv/GripperCalib.srv
 )
 
 rosidl_generate_interfaces(${PROJECT_NAME}

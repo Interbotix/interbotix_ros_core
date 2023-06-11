@@ -63,11 +63,20 @@ bool InterbotixRobotXS::robot_init_driver()
       filepath_mode_configs,
       write_eeprom_on_startup,
       xs_driver_logging_level);
+    init_offset_map(xs_driver);
   } catch (const std::runtime_error & e) {
     RCLCPP_FATAL(LOGGER, "InterbotixDriverXS initialization failed: '%s'.", e.what());
     return false;
   }
   return true;
+}
+
+void InterbotixRobotXS::init_offset_map(std::unique_ptr<InterbotixDriverXS> &driver){
+  
+  for(const auto& gripper_name:driver->get_gripper_order()){
+    gripper_offset_map[gripper_name] = 0.0;
+  }
+  
 }
 
 void InterbotixRobotXS::robot_init_parameters()
@@ -136,6 +145,9 @@ void InterbotixRobotXS::robot_init_services()
   srv_get_registers = this->create_service<RegisterValues>(
     "get_motor_registers",
     std::bind(&InterbotixRobotXS::robot_srv_get_motor_registers, this, _1, _2, _3));
+  srv_gripper_calib = this->create_service<GripperCalib>(
+    "gripper_calibration",
+    std::bind(&InterbotixRobotXS::robot_srv_gripper_calib, this, _1, _2, _3));
 }
 
 void InterbotixRobotXS::robot_init_timers()
@@ -392,6 +404,23 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(
   return true;
 }
 
+bool InterbotixRobotXS::robot_srv_gripper_calib(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<interbotix_xs_msgs::srv::GripperCalib::Request> req,
+    std::shared_ptr<interbotix_xs_msgs::srv::GripperCalib::Response> res)
+    {
+      gripper_offset_map[req->gripper_name] = req->offset;
+
+      std::cout<<"start"<<std::endl;
+      for(const auto item:gripper_offset_map){
+        std::cout<<"Look:"<<item.first<<","<<item.second<<std::endl;
+      }
+      std::cout<<"stop"<<std::endl;
+      return true;
+
+    }
+
+
 void InterbotixRobotXS::robot_execute_trajectory()
 {
   // get the current real time for this callback execution
@@ -516,6 +545,11 @@ void InterbotixRobotXS::robot_update_joint_states()
     joint_state_msg.effort.push_back(0);
   }
 
+  //Add gripper offset
+  for(const auto& gripper:gripper_offset_map){
+    joint_state_msg.position.at(xs_driver->get_gripper_info(gripper.first)->js_index)-=gripper.second;
+  }
+
   // Publish the message to the joint_states topic
   joint_state_msg.header.stamp = this->get_clock()->now();
   joint_states = joint_state_msg;
@@ -554,5 +588,7 @@ bool InterbotixRobotXS::robot_srv_validate(
   }
   return true;
 }
+
+
 
 }  // namespace interbotix_xs
