@@ -536,7 +536,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     gripper.arm_length = single_gripper["arm_length"].as<float>(0.024);
     gripper.left_finger = single_gripper["left_finger"].as<std::string>("left_finger");
     gripper.right_finger = single_gripper["right_finger"].as<std::string>("right_finger");
-    gripper.calibration_offset = single_gripper["calibration_offset"].as<float>();
+    gripper.calibration_offset = 0.0;
     gripper_map.insert({gripper_name, gripper});
   }
 

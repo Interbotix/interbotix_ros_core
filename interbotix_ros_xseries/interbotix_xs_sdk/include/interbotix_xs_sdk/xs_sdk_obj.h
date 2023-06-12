@@ -57,8 +57,8 @@ struct Gripper                                                          // Struc
   float horn_radius;                                                    // Distance [m] from the motor horn's center to its edge
   float arm_length;                                                     // Distance [m] from the edge of the motor horn to a finger
   std::string left_finger;                                              // Name of the 'left_finger' joint as defined in the URDF (if present)
-  std::string right_finger; 
-  float calibration_offset;                                             // Calibration offset fro gripper in angles 
+  std::string right_finger;                                             // Name of the 'right_finger' joint as defined in the URDF (if present)
+  float calibration_offset;                                             // Calibration offset in [rad] for gripper  
 };
 
 struct MotorInfo                                                        // Struct to hold a desired register value for a given motor
