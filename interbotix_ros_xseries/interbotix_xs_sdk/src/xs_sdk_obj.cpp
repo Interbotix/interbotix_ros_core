@@ -536,7 +536,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     gripper.arm_length = single_gripper["arm_length"].as<float>(0.024);
     gripper.left_finger = single_gripper["left_finger"].as<std::string>("left_finger");
     gripper.right_finger = single_gripper["right_finger"].as<std::string>("right_finger");
-    gripper.calibration_offset = single_gripper["calibration_offset"].as<float>();
+    gripper.calibration_offset = 0.0;
     gripper_map.insert({gripper_name, gripper});
   }
 
@@ -1090,11 +1090,11 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::Regist
 
 /**
  * @brief ROS Service to set the gripper calibration value in calibration map
- * 
- * @param req 
- * @param res 
- * @return true 
- * @return false 
+ *
+ * @param req
+ * @param res
+ * @return true
+ * @return false
  * @details - refer to the service definition for details
  */
 bool InterbotixRobotXS::robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res)
@@ -1188,7 +1188,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
                                 &log))
     {
       ROS_ERROR("[xs_sdk] %s", log);
-    }             
+    }
 
     // Gets present velocity of all servos
     if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
@@ -1277,7 +1277,9 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
   }
   // Publish the message to the joint_states topic
   joint_state_msg.header.stamp = ros::Time::now();
-  joint_state_msg.position[5]-= gripper_map["gripper"].calibration_offset;
+  for(const auto gripper:gripper_map){
+      joint_state_msg.position[gripper.second.js_index]-= gripper.second.calibration_offset;
+  }
   joint_states = joint_state_msg;
   if (pub_states) pub_joint_states.publish(joint_state_msg);
 }
