@@ -3,7 +3,7 @@
 #include <fstream>
 /**
  * @brief This class does the gripper finger calibration and sends the gripper offset to the SDK
- * 
+ *
  */
 class Gripper_calibration{
 private:
@@ -26,18 +26,18 @@ public:
 
     /**
      * @brief This function returns the gripper index of the _gripper_name
-     * 
-     * @param names 
-     * @return int 
+     *
+     * @param names - list of joint names
+     * @return int
      */
     int find_gripper_index(const std::vector<std::string>& names){
         return std::find(names.begin(),names.end(),_gripper_name)-names.begin();
     }
-    
+
     /**
      * @brief This is the subscriber callback for performing gripper calibration.
-     * 
-     * @param msg 
+     *
+     * @param msg
      */
     void calib_callback(const sensor_msgs::JointState &msg){
         static int count = 0;
@@ -62,10 +62,10 @@ public:
 
     /**
      * @brief ROS Service Client that sends the calibration offset values to SDK
-     * 
-     * @param min_position_offset 
-     * @param _gripper_name 
-     */
+     *
+     * @param min_position_offset - gripper offset value
+     * @param _gripper_name - gripper name
+     */ 
     void calib_complete_srv(float min_position_offset, std::string _gripper_name){
         gripper_calib_srv.request.gripper_name = _gripper_name;
         gripper_calib_srv.request.offset = min_position_offset;
@@ -84,11 +84,11 @@ public:
 
 /**
  * @brief This function loads the motor config yaml file and returns a vector of gripper names for calibration
- * 
- * @param success 
- * @param robot_name 
- * @param yaml_path 
- * @return std::vector<std::string> 
+ *
+ * @param success
+ * @param robot_name
+ * @param yaml_path
+ * @return std::vector<std::string>
  */
 std::vector<std::string> load_calibration_config(bool& success, std::string& robot_name, std::string yaml_path){
     YAML::Node yaml_node;
@@ -113,7 +113,7 @@ std::vector<std::string> load_calibration_config(bool& success, std::string& rob
         calibration_joints.push_back(gripper.first.as<std::string>());
     }
     return calibration_joints;
-            
+
 }
 
 
@@ -131,7 +131,7 @@ int main( int argc, char** argv )
     for(const auto name:gripper_names){
         ROS_INFO("%s",name.c_str());
         Gripper_calibration obj(&n1,success,param1,name);
-        ros::Subscriber sub = n1.subscribe("/"+param1+"/joint_states",1000,&Gripper_calibration::calib_callback,&obj);    
+        ros::Subscriber sub = n1.subscribe("/"+param1+"/joint_states",1000,&Gripper_calibration::calib_callback,&obj);
         if (success)
             ros::spin();
         else
