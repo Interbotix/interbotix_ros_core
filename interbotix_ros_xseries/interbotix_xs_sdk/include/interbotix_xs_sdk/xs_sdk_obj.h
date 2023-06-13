@@ -195,8 +195,6 @@ private:
   ros::Timer tmr_joint_traj;                                                    // ROS One-Shot Timer used when commanding motor trajectories
   sensor_msgs::JointState joint_states;                                         // Holds the most recent JointState message
   interbotix_xs_msgs::JointTrajectoryCommand joint_traj_cmd;                     // Holds the most recent JointTrajectoryCommand message
-  float prev_gripper_pos = 0;
-
   std::string port;                                                             // Holds the USB port name that connects to the U2D2
   std::string js_topic;                                                         // Desired JointState topic name
   std::vector<MotorInfo> motor_info_vec;                                        // Vector containing all the desired EEPROM register values to command the motors at startup
@@ -317,11 +315,10 @@ private:
 
   /**
    * @brief Sets the gripper calibration offset to gripper map.
-   *
    * @param req  - Consists the gripper name and its position offset value
    * @param res  [out] - Calibration offset service message response [unused]
-   * @return true
-   * @return false
+   * @return true if the service call request is valid, false otherwise
+   * @details - refer to the service definition for details
    */
   bool robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res);
 

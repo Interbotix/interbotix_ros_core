@@ -1090,11 +1090,8 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::Regist
 
 /**
  * @brief ROS Service to set the gripper calibration value in calibration map
- *
- * @param req
- * @param res
- * @return true
- * @return false
+ * @param req - Gripper Calibration service message request
+ * @param res [out] - Gripper Calibration service message response
  * @details - refer to the service definition for details
  */
 bool InterbotixRobotXS::robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res)
