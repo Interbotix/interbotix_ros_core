@@ -86,7 +86,6 @@ public:
   ~InterbotixRobotXS();
 
 private:
-
   // Gripper Calibration Flag
   bool is_calibrated;
 
@@ -103,7 +102,7 @@ private:
   bool execute_joint_traj;
 
   // Map of Calibration offset of gripper
-  std::unordered_map<std::string,float> gripper_offset_map;
+  std::unordered_map<std::string, float> gripper_offset_map;
 
   // InterbotixDriverXS object used to talk to the lower-level XS Interfaces
   std::unique_ptr<InterbotixDriverXS> xs_driver;

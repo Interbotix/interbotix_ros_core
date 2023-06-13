@@ -74,11 +74,9 @@ bool InterbotixRobotXS::robot_init_driver()
 }
 
 void InterbotixRobotXS::init_offset_map(std::unique_ptr<InterbotixDriverXS> &driver){
-
-  for(const auto& gripper_name:driver->get_gripper_order()){
+  for(const auto& gripper_name : driver->get_gripper_order()){
     gripper_offset_map[gripper_name] = 0.0;
   }
-
 }
 
 void InterbotixRobotXS::robot_init_parameters()
@@ -528,24 +526,26 @@ void InterbotixRobotXS::robot_update_joint_states()
   }
 
   // Gripper Calibration Routine
-  if(!is_calibrated){
-    float curr_gripper_pos = joint_state_msg.position.at(xs_driver->get_gripper_info("gripper")->js_index);
-    if(std::abs(curr_gripper_pos-prev_gripper_pos)>0.0001){
-      RCLCPP_INFO(LOGGER,"Calibrating Gripper at position [%f]",curr_gripper_pos);
+  if(!is_calibrated) {
+    float curr_gripper_pos = joint_state_msg.position.at(
+      xs_driver->get_gripper_info("gripper")->js_index);
+
+    if(std::abs(curr_gripper_pos-prev_gripper_pos) > 0.0001) {
+      RCLCPP_INFO(LOGGER, "Calibrating Gripper at position [%f]", curr_gripper_pos);
       xs_driver->write_joint_command("gripper",-200);
-    }
-    else{
-      RCLCPP_INFO(LOGGER,"The error is 0");
+    } else {
+      RCLCPP_INFO(LOGGER, "The error is 0");
       is_calibrated = 1;
       gripper_offset_map["gripper"] = curr_gripper_pos;
     }
-    RCLCPP_INFO(LOGGER,"Gripper Calibration Finished Sucessfully!");
+    RCLCPP_INFO(LOGGER, "Gripper Calibration Finished Sucessfully!");
     prev_gripper_pos = curr_gripper_pos;
   }
 
-  //Add gripper offset
-  for(const auto& gripper:gripper_offset_map){
-    joint_state_msg.position.at(xs_driver->get_gripper_info(gripper.first)->js_index)-=gripper.second;
+  // Add gripper offset
+  for(const auto& gripper : gripper_offset_map){
+    joint_state_msg.position.at(
+      xs_driver->get_gripper_info(gripper.first)->js_index) -= gripper.second;
   }
 
   // Publish the message to the joint_states topic
