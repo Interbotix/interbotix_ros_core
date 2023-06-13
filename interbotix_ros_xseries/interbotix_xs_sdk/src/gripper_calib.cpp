@@ -2,8 +2,7 @@
 #include <iostream>
 #include <fstream>
 /**
- * @brief This class does the gripper finger calibration and sends the gripper offset to the SDK
- *
+ * @brief Class for gripper finger calibration.
  */
 class Gripper_calibration{
 private:
@@ -16,6 +15,13 @@ private:
     interbotix_xs_msgs::GripperCalib gripper_calib_srv;
     std::string _gripper_name;
 public:
+    /**
+     * @brief Construct a new Gripper_calibration object.
+     * @param node_handle - Node object
+     * @param success  - Checker flag if node processes are succesful
+     * @param robot_name  - Name of the robot
+     * @param gripper_name  - Name of the gripper
+     */
     Gripper_calibration(ros::NodeHandle* node_handle, bool &success, std::string robot_name, std::string gripper_name):node(*node_handle),_gripper_name(gripper_name)
     {
         pub = node.advertise<interbotix_xs_msgs::JointSingleCommand>("/"+robot_name+"/commands/joint_single",1000);
@@ -25,19 +31,16 @@ public:
     }
 
     /**
-     * @brief This function returns the gripper index of the _gripper_name
-     *
+     * @brief Returns the gripper index in joint states of the parsed gripper name
      * @param names - list of joint names
-     * @return int
+     * @return int  - index of the gripper name
      */
     int find_gripper_index(const std::vector<std::string>& names){
         return std::find(names.begin(),names.end(),_gripper_name)-names.begin();
     }
 
     /**
-     * @brief This is the subscriber callback for performing gripper calibration.
-     *
-     * @param msg
+     * @brief Subscriber callback for performing gripper calibration
      */
     void calib_callback(const sensor_msgs::JointState &msg){
         static int count = 0;
@@ -62,10 +65,9 @@ public:
 
     /**
      * @brief ROS Service Client that sends the calibration offset values to SDK
-     *
      * @param min_position_offset - gripper offset value
      * @param _gripper_name - gripper name
-     */ 
+     */
     void calib_complete_srv(float min_position_offset, std::string _gripper_name){
         gripper_calib_srv.request.gripper_name = _gripper_name;
         gripper_calib_srv.request.offset = min_position_offset;
@@ -78,17 +80,15 @@ public:
         }
     }
 
-
 };
 
 
 /**
- * @brief This function loads the motor config yaml file and returns a vector of gripper names for calibration
- *
- * @param success
- * @param robot_name
- * @param yaml_path
- * @return std::vector<std::string>
+ * @brief loads the motor config yaml file and returns a vector of gripper names for calibration
+ * @param success - Flag to check if the loading process was succesful
+ * @param robot_name - Name of the robot
+ * @param yaml_path - Path to the motor config yaml file.
+ * @return - [out] vector of gripper names.
  */
 std::vector<std::string> load_calibration_config(bool& success, std::string& robot_name, std::string yaml_path){
     YAML::Node yaml_node;
