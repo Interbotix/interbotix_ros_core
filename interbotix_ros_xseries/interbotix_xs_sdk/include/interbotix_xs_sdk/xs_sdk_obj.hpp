@@ -179,7 +179,7 @@ private:
    * @param driver
    * @return std::unordered_map<std::string,float>
    */
-  void init_offset_map(std::unique_ptr<InterbotixDriverXS> &driver);
+  void init_offset_map(std::unique_ptr<InterbotixDriverXS> & driver);
 
   /// @brief Loads the X-Series robot driver
   /// @returns True if the driver was loaded successfully, False otherwise
