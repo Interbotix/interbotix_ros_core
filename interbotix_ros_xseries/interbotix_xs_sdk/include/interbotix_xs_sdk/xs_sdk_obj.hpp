@@ -87,7 +87,7 @@ public:
 
 private:
 
-  // Previous Gripper position value
+  // Gripper Calibration Flag
   bool is_calibrated;
 
   // Previous Gripper position value
