@@ -51,7 +51,6 @@
 #include "interbotix_xs_msgs/srv/torque_enable.hpp"
 #include "interbotix_xs_msgs/srv/operating_modes.hpp"
 #include "interbotix_xs_msgs/srv/register_values.hpp"
-#include "interbotix_xs_msgs/srv/gripper_calib.hpp"
 #include "interbotix_xs_msgs/msg/joint_group_command.hpp"
 #include "interbotix_xs_msgs/msg/joint_single_command.hpp"
 #include "interbotix_xs_msgs/msg/joint_trajectory_command.hpp"
@@ -71,7 +70,6 @@ using TorqueEnable = interbotix_xs_msgs::srv::TorqueEnable;
 using JointGroupCommand = interbotix_xs_msgs::msg::JointGroupCommand;
 using JointSingleCommand = interbotix_xs_msgs::msg::JointSingleCommand;
 using JointTrajectoryCommand = interbotix_xs_msgs::msg::JointTrajectoryCommand;
-using GripperCalib = interbotix_xs_msgs::srv::GripperCalib;
 
 /// @brief The Interbotix X-Series ROS Node
 class InterbotixRobotXS : public rclcpp::Node
@@ -88,6 +86,13 @@ public:
   ~InterbotixRobotXS();
 
 private:
+
+  // Previous Gripper position value
+  bool is_calibrated;
+
+  // Previous Gripper position value
+  float prev_gripper_pos;
+
   // Frequency at which the ROS Timer publishing joint states should run
   int timer_hz;
 
@@ -136,9 +141,6 @@ private:
   // ROS Service Server used to reboot any motor
   rclcpp::Service<Reboot>::SharedPtr srv_reboot_motors;
 
-  // ROS Service Server used to calibrate gripper
-  rclcpp::Service<GripperCalib>::SharedPtr srv_gripper_calib;
-
   // ROS Timer used to continuously publish joint states
   rclcpp::TimerBase::SharedPtr tmr_joint_states;
 
@@ -174,9 +176,9 @@ private:
 
   /**
    * @brief Initilizes a map with gripper names and offsets to zero
-   * 
-   * @param driver 
-   * @return std::unordered_map<std::string,float> 
+   *
+   * @param driver
+   * @return std::unordered_map<std::string,float>
    */
   void init_offset_map(std::unique_ptr<InterbotixDriverXS> &driver);
 
@@ -281,23 +283,6 @@ private:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<RegisterValues::Request> req,
     std::shared_ptr<RegisterValues::Response> res);
-
-
-
-  /**
-   * @brief ROS Service for updating gripper calibration offset
-   * 
-   * @param request_header 
-   * @param req 
-   * @param res 
-   * @return true 
-   * @return false 
-   */
-  bool robot_srv_gripper_calib(
-    const std::shared_ptr<rmw_request_id_t> request_header,
-    const std::shared_ptr<GripperCalib::Request> req,
-    std::shared_ptr<GripperCalib::Response> res);
-
 
   /// @brief Checks service call requests for validity
   /// @param cmd_type request cmd_type field
