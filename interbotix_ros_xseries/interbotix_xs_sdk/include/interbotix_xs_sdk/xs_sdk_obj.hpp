@@ -292,7 +292,6 @@ private:
   ///   group_map or motor_map
   bool robot_srv_validate(const std::string & cmd_type, const std::string & name);
 
-
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
   void robot_execute_trajectory();
 

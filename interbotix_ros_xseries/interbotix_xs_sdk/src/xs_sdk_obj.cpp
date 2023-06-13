@@ -587,6 +587,4 @@ bool InterbotixRobotXS::robot_srv_validate(
   return true;
 }
 
-
-
 }  // namespace interbotix_xs

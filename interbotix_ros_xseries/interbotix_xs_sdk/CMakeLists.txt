@@ -38,9 +38,7 @@ set(ROS_DEPENDENCIES
 ## Specify libraries to link a library or executable target against
 add_executable(xs_sdk src/xs_sdk.cpp src/xs_sdk_obj.cpp)
 ament_target_dependencies(xs_sdk ${ROS_DEPENDENCIES})
-
 target_link_libraries(xs_sdk yaml-cpp)
-
 
 #############
 ## Install ##
