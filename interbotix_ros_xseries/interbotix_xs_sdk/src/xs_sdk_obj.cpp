@@ -532,7 +532,7 @@ void InterbotixRobotXS::robot_update_joint_states()
 
     if(std::abs(curr_gripper_pos-prev_gripper_pos) > 0.0001) {
       RCLCPP_INFO(LOGGER, "Calibrating Gripper at position [%f]", curr_gripper_pos);
-      xs_driver->write_joint_command("gripper",-200);
+      xs_driver->write_joint_command("gripper", -200);
     } else {
       RCLCPP_INFO(LOGGER, "The error is 0");
       is_calibrated = 1;
