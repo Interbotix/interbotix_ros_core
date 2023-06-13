@@ -73,8 +73,9 @@ bool InterbotixRobotXS::robot_init_driver()
   return true;
 }
 
-void InterbotixRobotXS::init_offset_map(std::unique_ptr<InterbotixDriverXS> & driver){
-  for(const auto& gripper_name : driver->get_gripper_order()){
+void InterbotixRobotXS::init_offset_map(std::unique_ptr<InterbotixDriverXS> & driver)
+{
+  for (const auto & gripper_name : driver->get_gripper_order()) {
     gripper_offset_map[gripper_name] = 0.0;
   }
 }
@@ -530,7 +531,7 @@ void InterbotixRobotXS::robot_update_joint_states()
     float curr_gripper_pos = joint_state_msg.position.at(
       xs_driver->get_gripper_info("gripper")->js_index);
 
-    if (std::abs(curr_gripper_pos-prev_gripper_pos) > 0.0001) {
+    if (std::abs(curr_gripper_pos - prev_gripper_pos) > 0.0001) {
       RCLCPP_INFO(LOGGER, "Calibrating Gripper at position [%f]", curr_gripper_pos);
       xs_driver->write_joint_command("gripper", -200);
     } else {
@@ -543,7 +544,7 @@ void InterbotixRobotXS::robot_update_joint_states()
   }
 
   // Add gripper offset
-  for(const auto& gripper : gripper_offset_map){
+  for (const auto & gripper : gripper_offset_map) {
     joint_state_msg.position.at(
       xs_driver->get_gripper_info(gripper.first)->js_index) -= gripper.second;
   }
