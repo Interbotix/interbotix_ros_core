@@ -1277,8 +1277,8 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
   }
   // Publish the message to the joint_states topic
   joint_state_msg.header.stamp = ros::Time::now();
-  for(const auto gripper:gripper_map){
-      joint_state_msg.position[gripper.second.js_index]-= gripper.second.calibration_offset;
+  for (const auto gripper : gripper_map){
+      joint_state_msg.position[gripper.second.js_index] -= gripper.second.calibration_offset;
   }
   joint_states = joint_state_msg;
   if (pub_states) pub_joint_states.publish(joint_state_msg);
