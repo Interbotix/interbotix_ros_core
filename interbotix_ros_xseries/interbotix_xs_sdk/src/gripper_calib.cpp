@@ -5,15 +5,6 @@
 /// @brief Class for gripper finger calibration.
 class GripperCalibration
 {
-private:
-    ros::NodeHandle node;                                                   // Node object of gripper calibration class
-    ros::Publisher pub;                                                     // ROS Publisher instance
-    ros::ServiceClient client;                                              // ROS service client instance
-    ros::Subscriber sub;                                                    // ROS Subscriber instance
-    float prev_val = 0.0;                                                   // Previous gripper value initialization
-    interbotix_xs_msgs::JointSingleCommand gripper_command_msg;             // ROS Message for gripper calibration
-    interbotix_xs_msgs::GripperCalib gripper_calib_srv;                     // ROS Service for gripper calibration
-    std::string _gripper_name;                                              // Name of gripper to be calibrated
 public:
 
     /// @brief Construct a new Gripper_calibration object.
@@ -29,6 +20,16 @@ public:
         client = node.serviceClient<interbotix_xs_msgs::GripperCalib>("/gripper_calibration");
         calib_complete_srv(0.0);
     }
+
+private:
+    ros::NodeHandle node;                                                   // Node object of gripper calibration class
+    ros::Publisher pub;                                                     // ROS Publisher instance
+    ros::ServiceClient client;                                              // ROS service client instance
+    ros::Subscriber sub;                                                    // ROS Subscriber instance
+    float prev_val = 0.0;                                                   // Previous gripper value initialization
+    interbotix_xs_msgs::JointSingleCommand gripper_command_msg;             // ROS Message for gripper calibration
+    interbotix_xs_msgs::GripperCalib gripper_calib_srv;                     // ROS Service for gripper calibration
+    std::string _gripper_name;                                              // Name of gripper to be calibrated
 
     /// @brief Returns the gripper index in joint states of the parsed gripper name
     /// @param names - list of joint names
