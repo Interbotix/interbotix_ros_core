@@ -21,24 +21,6 @@ public:
         calib_complete_srv(0.0);
     }
 
-private:
-    ros::NodeHandle node;                                                   // Node object of gripper calibration class
-    ros::Publisher pub;                                                     // ROS Publisher instance
-    ros::ServiceClient client;                                              // ROS service client instance
-    ros::Subscriber sub;                                                    // ROS Subscriber instance
-    float prev_val = 0.0;                                                   // Previous gripper value initialization
-    interbotix_xs_msgs::JointSingleCommand gripper_command_msg;             // ROS Message for gripper calibration
-    interbotix_xs_msgs::GripperCalib gripper_calib_srv;                     // ROS Service for gripper calibration
-    std::string _gripper_name;                                              // Name of gripper to be calibrated
-
-    /// @brief Returns the gripper index in joint states of the parsed gripper name
-    /// @param names - list of joint names
-    /// @return int  - index of the gripper name
-    int find_gripper_index(const std::vector<std::string>& names)
-    {
-        return std::find(names.begin(), names.end(), _gripper_name) - names.begin();
-    }
-
     /// @brief Subscriber callback for performing gripper calibration
     void calib_callback(const sensor_msgs::JointState &msg){
         static int count = 0;
@@ -59,6 +41,25 @@ private:
         }
         count++;
     }
+
+private:
+    ros::NodeHandle node;                                                   // Node object of gripper calibration class
+    ros::Publisher pub;                                                     // ROS Publisher instance
+    ros::ServiceClient client;                                              // ROS service client instance
+    ros::Subscriber sub;                                                    // ROS Subscriber instance
+    float prev_val = 0.0;                                                   // Previous gripper value initialization
+    interbotix_xs_msgs::JointSingleCommand gripper_command_msg;             // ROS Message for gripper calibration
+    interbotix_xs_msgs::GripperCalib gripper_calib_srv;                     // ROS Service for gripper calibration
+    std::string _gripper_name;                                              // Name of gripper to be calibrated
+
+    /// @brief Returns the gripper index in joint states of the parsed gripper name
+    /// @param names - list of joint names
+    /// @return int  - index of the gripper name
+    int find_gripper_index(const std::vector<std::string>& names)
+    {
+        return std::find(names.begin(), names.end(), _gripper_name) - names.begin();
+    }
+
 
     /// @brief ROS Service Client that sends the calibration offset values to SDK
     /// @param min_position_offset - gripper offset value
