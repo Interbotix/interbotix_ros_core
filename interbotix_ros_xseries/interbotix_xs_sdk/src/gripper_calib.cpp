@@ -109,7 +109,8 @@ std::vector<std::string> load_calibration_config(bool& success, std::string& rob
         success = false;
     }
     YAML::Node all_grippers = yaml_node["grippers"];
-    for(const auto gripper:all_grippers){
+    for(const auto gripper : all_grippers)
+    {
         calibration_joints.push_back(gripper.first.as<std::string>());
     }
     return calibration_joints;
