@@ -312,14 +312,10 @@ private:
   /// @details cmd_type must be 'single' or 'group'; name must be in the group_map or motor_map
   bool robot_srv_validate(const std::string &cmd_type, std::string &name);
 
-
-  /**
-   * @brief Sets the gripper calibration offset to gripper map.
-   * @param req  - Consists the gripper name and its position offset value
-   * @param res  [out] - Calibration offset service message response [unused]
-   * @return true if the service call request is valid, false otherwise
-   * @details - refer to the service definition for details
-   */
+  /// @brief Sets the gripper calibration offset to gripper map
+  /// @param req - GripperCalib service message request
+  /// @param res [out] - GripperCalib service message response [unused]
+  /// @details - refer to the service definition for details
   bool robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res);
 
   /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
