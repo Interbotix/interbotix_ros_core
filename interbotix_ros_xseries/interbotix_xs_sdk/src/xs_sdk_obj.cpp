@@ -514,6 +514,10 @@ void InterbotixRobotXS::robot_update_joint_states()
     joint_state_msg.velocity.push_back(0);
     joint_state_msg.effort.push_back(0);
     joint_state_msg.effort.push_back(0);
+    joint_state_msg.position.at(
+      xs_driver->get_gripper_info(name)->js_index) -=
+      xs_driver->get_gripper_info(name)->calibration_offset;
+    std::cout<<"Look:"<<xs_driver->get_gripper_info(name)->calibration_offset<<std::endl;
   }
 
   // Publish the message to the joint_states topic
