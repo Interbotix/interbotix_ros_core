@@ -4,7 +4,8 @@
 /**
  * @brief Class for gripper finger calibration.
  */
-class Gripper_calibration{
+class GripperCalibration
+{
 private:
     ros::NodeHandle node;
     ros::Publisher pub;
