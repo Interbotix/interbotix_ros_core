@@ -130,7 +130,7 @@ int main( int argc, char** argv )
         else
         {
             ROS_FATAL(
-                "[xs_sdk] For troubleshooting, please see "
+                "[gripper_calib] For troubleshooting, please see "
                 "'https://docs.trossenrobotics.com/interbotix_xsarms_docs/troubleshooting.html'");
             continue;
         }
