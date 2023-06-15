@@ -108,7 +108,6 @@ std::vector<std::string> load_calibration_config(bool& success, std::string& rob
         calibration_joints.push_back(gripper.first.as<std::string>());
     }
     return calibration_joints;
-
 }
 
 
