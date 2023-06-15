@@ -126,7 +126,7 @@ int main( int argc, char** argv )
     for(const auto gripper_name : gripper_order) {
         ROS_INFO("%s",gripper_name.c_str());
         GripperCalibration obj(&n1, success, robot_name, gripper_name);
-        ros::Subscriber sub = n1.subscribe("/"+robot_name+"/joint_states",1000,&GripperCalibration::calib_callback,&obj);
+        ros::Subscriber sub = n1.subscribe("joint_states", 1000, &GripperCalibration::calib_callback, &obj);
         if (success)
             ros::spin();
         else
