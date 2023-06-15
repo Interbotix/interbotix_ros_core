@@ -9,31 +9,32 @@ public:
 
     /// @brief Construct a new Gripper_calibration object.
     /// @param node_handle - Node object
-    /// @param success  - Checker flag if node processes are succesful
-    /// @param robot_name  - Name of the robot
-    /// @param gripper_name  - Name of the gripper
-    GripperCalibration(ros::NodeHandle* node_handle, bool &success, std::string robot_name, std::string gripper_name)
+    /// @param success - Checker flag if node processes are succesful
+    /// @param robot_name - Name of the robot
+    /// @param gripper_name - Name of the gripper
+    GripperCalibration(ros::NodeHandle* node_handle, std::string gripper_name)
     :node(*node_handle),_gripper_name(gripper_name)
     {
-        pub = node.advertise<interbotix_xs_msgs::JointSingleCommand>("/commands/joint_single",1000);
-        sub = node.subscribe("/joint_states",1000,&GripperCalibration::calib_callback,this);
-        client = node.serviceClient<interbotix_xs_msgs::GripperCalib>("/gripper_calibration");
+        pub = node.advertise<interbotix_xs_msgs::JointSingleCommand>("commands/joint_single",1000);
+        sub = node.subscribe("joint_states",1000,&GripperCalibration::calib_callback,this);
+        client = node.serviceClient<interbotix_xs_msgs::GripperCalib>("gripper_calibration");
         calib_complete_srv(0.0);
     }
 
     /// @brief Subscriber callback for performing gripper calibration
-    void calib_callback(const sensor_msgs::JointState &msg){
+    void calib_callback(const sensor_msgs::JointState &msg)
+    {
         static int count = 0;
-        if(count%40==0){
+        if(count % 40 == 0)
+        {
             int index = find_gripper_index(msg.name);
             float curr_gripper_pos = msg.position[index];
-            if(std::abs(curr_gripper_pos-prev_val)>0.0001){
+            if(std::abs(curr_gripper_pos - prev_val) > 0.0001){
                 gripper_command_msg.name = _gripper_name;
                 gripper_command_msg.cmd = -200;
                 pub.publish(gripper_command_msg);
             }
             else{
-                ROS_INFO("The error is 0");
                 calib_complete_srv(curr_gripper_pos);
                 ros::shutdown();
             }
@@ -54,7 +55,7 @@ private:
 
     /// @brief Returns the gripper index in joint states of the parsed gripper name
     /// @param names - list of joint names
-    /// @return int  - index of the gripper name
+    /// @return int - index of the gripper name
     int find_gripper_index(const std::vector<std::string>& names)
     {
         return std::find(names.begin(), names.end(), _gripper_name) - names.begin();
@@ -117,13 +118,10 @@ int main( int argc, char** argv )
     ros::NodeHandle n1;
     ros::param::get("~motor_configs", motor_configs_file);
     ros::param::get("~robot", robot_name);
-    ROS_INFO("Got parameter 1 : %s", robot_name.c_str());
-    ROS_INFO("Got parameter 2 : %s",motor_configs_file.c_str());
     bool success = true;
     std::vector<std::string> gripper_order = load_calibration_config(success, robot_name, motor_configs_file);
     for(const auto gripper_name : gripper_order) {
-        ROS_INFO("%s",gripper_name.c_str());
-        GripperCalibration obj(&n1, success, robot_name, gripper_name);
+        GripperCalibration obj(&n1, gripper_name);
         ros::Subscriber sub = n1.subscribe("joint_states", 1000, &GripperCalibration::calib_callback, &obj);
         if (success)
             ros::spin();
