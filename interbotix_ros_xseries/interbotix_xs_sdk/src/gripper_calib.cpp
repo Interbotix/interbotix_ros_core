@@ -60,7 +60,6 @@ private:
         return std::find(names.begin(), names.end(), _gripper_name) - names.begin();
     }
 
-
     /// @brief ROS Service Client that sends the calibration offset values to SDK
     /// @param min_position_offset - gripper offset value
     void calib_complete_srv(float min_position_offset) {
