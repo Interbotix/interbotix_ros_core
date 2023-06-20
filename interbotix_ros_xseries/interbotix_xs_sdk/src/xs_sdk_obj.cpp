@@ -506,18 +506,6 @@ void InterbotixRobotXS::robot_update_joint_states()
   for (auto const & name : xs_driver->get_gripper_order()) {
     joint_state_msg.name.push_back(xs_driver->get_gripper_info(name)->left_finger.c_str());
     joint_state_msg.name.push_back(xs_driver->get_gripper_info(name)->right_finger.c_str());
-    float pos = xs_driver->convert_angular_position_to_linear(
-      name, joint_state_msg.position.at(xs_driver->get_gripper_info(name)->js_index));
-    joint_state_msg.position.push_back(pos);
-    joint_state_msg.position.push_back(-pos);
-    joint_state_msg.velocity.push_back(0);
-    joint_state_msg.velocity.push_back(0);
-    joint_state_msg.effort.push_back(0);
-    joint_state_msg.effort.push_back(0);
-    joint_state_msg.position.at(
-      xs_driver->get_gripper_info(name)->js_index) -=
-      xs_driver->get_gripper_info(name)->calibration_offset;
-    std::cout<<"Look:"<<xs_driver->get_gripper_info(name)->calibration_offset<<std::endl;
   }
 
   // Publish the message to the joint_states topic
