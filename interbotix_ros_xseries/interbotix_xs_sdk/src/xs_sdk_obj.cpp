@@ -536,6 +536,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     gripper.arm_length = single_gripper["arm_length"].as<float>(0.024);
     gripper.left_finger = single_gripper["left_finger"].as<std::string>("left_finger");
     gripper.right_finger = single_gripper["right_finger"].as<std::string>("right_finger");
+    gripper.calibration_offset = 0.0;
     gripper_map.insert({gripper_name, gripper});
   }
 
@@ -856,6 +857,7 @@ void InterbotixRobotXS::robot_init_services(void)
   srv_motor_gains = node.advertiseService("set_motor_pid_gains", &InterbotixRobotXS::robot_srv_set_motor_pid_gains, this);
   srv_set_registers = node.advertiseService("set_motor_registers", &InterbotixRobotXS::robot_srv_set_motor_registers, this);
   srv_get_registers = node.advertiseService("get_motor_registers", &InterbotixRobotXS::robot_srv_get_motor_registers, this);
+  srv_gripper_calib = node.advertiseService("gripper_calibration", &InterbotixRobotXS::robot_srv_gripper_calib, this);
 }
 
 /// @brief Initialize ROS Timers
@@ -1086,6 +1088,19 @@ bool InterbotixRobotXS::robot_srv_get_motor_registers(interbotix_xs_msgs::Regist
   return true;
 }
 
+/**
+ * @brief ROS Service to set the gripper calibration value in calibration map
+ * @param req - Gripper Calibration service message request
+ * @param res [out] - Gripper Calibration service message response
+ * @details - refer to the service definition for details
+ */
+bool InterbotixRobotXS::robot_srv_gripper_calib(interbotix_xs_msgs::GripperCalib::Request &req, interbotix_xs_msgs::GripperCalib::Response &res)
+{
+  gripper_map[req.gripper_name].calibration_offset = req.offset;
+  return true;
+}
+
+
 /// @brief ROS One-Shot Timer used to step through a commanded joint trajectory
 /// @param e - TimerEvent message [unused]
 void InterbotixRobotXS::robot_execute_trajectory(const ros::TimerEvent &e)
@@ -1170,7 +1185,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
                                 &log))
     {
       ROS_ERROR("[xs_sdk] %s", log);
-    }             
+    }
 
     // Gets present velocity of all servos
     if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
@@ -1259,6 +1274,9 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
   }
   // Publish the message to the joint_states topic
   joint_state_msg.header.stamp = ros::Time::now();
+  for (const auto gripper : gripper_map){
+      joint_state_msg.position[gripper.second.js_index] -= gripper.second.calibration_offset;
+  }
   joint_states = joint_state_msg;
   if (pub_states) pub_joint_states.publish(joint_state_msg);
 }

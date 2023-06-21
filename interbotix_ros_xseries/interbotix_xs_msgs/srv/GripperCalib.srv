@@ -1,0 +1,5 @@
+# Gripper Calibration Service
+
+string gripper_name          # Name of gripper to be calibrated
+float32 offset               # Offset value [rad]
+---

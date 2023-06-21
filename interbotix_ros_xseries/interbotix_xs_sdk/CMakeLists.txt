@@ -73,9 +73,12 @@ add_dependencies(${PROJECT_NAME} ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EX
 ## Specify libraries to link a library or executable target against
 ## Add cmake target dependencies of the executable
 add_executable(xs_sdk src/xs_sdk.cpp src/xs_sdk_obj.cpp)
+add_executable(gripper_calib src/gripper_calib.cpp)
+
 add_dependencies(xs_sdk ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(xs_sdk ${PROJECT_NAME} ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
-
+add_dependencies(gripper_calib ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(gripper_calib ${PROJECT_NAME} ${catkin_LIBRARIES} ${YAML_CPP_LIBRARIES})
 #############
 ## Install ##
 #############
