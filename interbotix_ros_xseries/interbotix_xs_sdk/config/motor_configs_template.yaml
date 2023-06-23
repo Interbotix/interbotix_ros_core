@@ -45,10 +45,13 @@ groups:                                                                         
                                                                                 # Note that 'all' is a special group name that contains all the joints in the 'joint_order' sequence.
 grippers:                                                                       # Optional; defines an unlimited number of Interbotix grippers; custom 'gripper' names can be used.
   gripper:                                                                      # Example gripper name
+    type: "swing_arm"                                                           # Optional; type of gripper mechanism used i.e('swing_arm' or 'rack_and_pinion'); defaults to 'swing_arm'
     horn_radius: 0.022                                                          # Optional; length in meters from the middle of the gripper servo horn to its edge; defaults to '0.014'
+    pitch_radius: 0.0127                                                        # Optional; length in meters radius of pinion; defaults to '0.0127'
     arm_length: 0.036                                                           # Optional; length in meters from the end of the servo horn to a finger; defaults to '0.024'
     left_finger: left_finger                                                    # Optional; name of the 'left_finger' joint; this must match the name in the URDF (if present); defaults to 'left_finger'
     right_finger: right_finger                                                  # Optional; name of the 'right_finger' joint; this must match the name in the URDF (if present); defaults to 'right_finger'
+    calibrate: true                                                             # Optional; flag to calibrate gripper; defaults to 'true'
 
 shadows:                                                                        # Optional; list of any 'master' motors and all of its shadows (usually 1, but could be unlimited)
   shoulder:
