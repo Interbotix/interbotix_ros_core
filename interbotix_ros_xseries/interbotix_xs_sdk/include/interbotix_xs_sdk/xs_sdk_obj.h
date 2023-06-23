@@ -54,11 +54,14 @@ struct MotorState                                                       // Struc
 struct Gripper                                                          // Struct to hold data on an Interbotix Gripper
 {
   size_t js_index;                                                      // Index in the published JointState message 'name' list belonging to the gripper motor
+  std::string type;                                                     // Type of gripper mecahnism used i.e (swing_arm or rack_and_pinion)
   float horn_radius;                                                    // Distance [m] from the motor horn's center to its edge
+  float pitch_radius;                                                   // Distance [m] from the motor pinion's center to its edge
   float arm_length;                                                     // Distance [m] from the edge of the motor horn to a finger
   std::string left_finger;                                              // Name of the 'left_finger' joint as defined in the URDF (if present)
   std::string right_finger;                                             // Name of the 'right_finger' joint as defined in the URDF (if present)
   float calibration_offset;                                             // Calibration offset [rad] for gripper
+  bool calibrate;                                                       // Flag to check if gripper is to be calibrated
 };
 
 struct MotorInfo                                                        // Struct to hold a desired register value for a given motor
