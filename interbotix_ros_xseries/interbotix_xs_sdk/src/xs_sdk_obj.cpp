@@ -445,11 +445,20 @@ void InterbotixRobotXS::robot_get_joint_state(std::string const& name, float *po
 /// @param <float> [out] - angular position [rad] that achieves the desired linear distance
 float InterbotixRobotXS::robot_convert_linear_position_to_radian(std::string const& name, float const& linear_position)
 {
-  float half_dist = linear_position / 2.0;
-  float arm_length = gripper_map[name].arm_length;
-  float horn_radius = gripper_map[name].horn_radius;
-  float result = 3.14159/2.0 - acos((pow(horn_radius, 2) + pow(half_dist,2) - pow(arm_length, 2)) / (2 * horn_radius * half_dist));
-  return result;
+  if (gripper_map[name].type == "swing_arm")
+  {
+    float half_dist = linear_position / 2.0;
+    float arm_length = gripper_map[name].arm_length;
+    float horn_radius = gripper_map[name].horn_radius;
+    float result = 3.14159/2.0 - acos((pow(horn_radius, 2) + pow(half_dist,2) - pow(arm_length, 2)) / (2 * horn_radius * half_dist));
+    return result;
+  }
+  else
+  {
+    // circumference = radius * angle
+    return linear_position / (2 * gripper_map[name].pitch_radius);
+
+  }
 }
 
 /// @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
@@ -458,12 +467,20 @@ float InterbotixRobotXS::robot_convert_linear_position_to_radian(std::string con
 /// @param <float> [out] - linear position [m] from a gripper finger to the center of the gripper servo horn
 float InterbotixRobotXS::robot_convert_angular_position_to_linear(std::string const& name, float const& angular_position)
 {
-  float arm_length = gripper_map[name].arm_length;
-  float horn_radius = gripper_map[name].horn_radius;
-  float a1 = horn_radius * sin(angular_position);
-  float c = sqrt(pow(horn_radius,2) - pow(a1,2));
-  float a2 = sqrt(pow(arm_length,2) - pow(c,2));
-  return a1 + a2;
+  if (gripper_map[name].type == "swing_arm")
+  {
+    float arm_length = gripper_map[name].arm_length;
+    float horn_radius = gripper_map[name].horn_radius;
+    float a1 = horn_radius * sin(angular_position);
+    float c = sqrt(pow(horn_radius,2) - pow(a1,2));
+    float a2 = sqrt(pow(arm_length,2) - pow(c,2));
+    return a1 + a2;
+  }
+  else
+  {
+    // circumference = radius * angle
+    return gripper_map[name].pitch_radius * angular_position * 2;
+  }
 }
 
 /// @brief Loads a robot-specific 'motor_configs' yaml file and populates class variables with its contents
@@ -532,10 +549,19 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     std::string gripper_name = gripper_itr->first.as<std::string>();
     YAML::Node single_gripper = all_grippers[gripper_name];
     Gripper gripper;
+    gripper.type = single_gripper["type"].as<std::string>("swing_arm");
+    if (!(gripper.type == "swing_arm" || gripper.type == "rack_and_pinion"))
+    {
+      ROS_ERROR("Invalid Gripper Type: '%s'. Options are: 'swing_arm', 'rack_and_pinion'",
+        gripper.type.c_str());
+      return false;
+    }
     gripper.horn_radius = single_gripper["horn_radius"].as<float>(0.014);
+    gripper.pitch_radius = single_gripper["pitch_radius"].as<float>(0.0127);
     gripper.arm_length = single_gripper["arm_length"].as<float>(0.024);
     gripper.left_finger = single_gripper["left_finger"].as<std::string>("left_finger");
     gripper.right_finger = single_gripper["right_finger"].as<std::string>("right_finger");
+    gripper.calibrate = single_gripper["calibrate"].as<bool>(false);
     gripper.calibration_offset = 0.0;
     gripper_map.insert({gripper_name, gripper});
   }
