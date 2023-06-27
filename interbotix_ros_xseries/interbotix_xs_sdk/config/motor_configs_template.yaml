@@ -51,7 +51,7 @@ grippers:                                                                       
     arm_length: 0.036                                                           # Optional; length in meters from the end of the servo horn to a finger; defaults to '0.024'
     left_finger: left_finger                                                    # Optional; name of the 'left_finger' joint; this must match the name in the URDF (if present); defaults to 'left_finger'
     right_finger: right_finger                                                  # Optional; name of the 'right_finger' joint; this must match the name in the URDF (if present); defaults to 'right_finger'
-    calibrate: true                                                             # Optional; flag to calibrate gripper; defaults to 'true'
+    calibrate: false                                                            # Optional; flag to calibrate gripper; defaults to 'false'
 
 shadows:                                                                        # Optional; list of any 'master' motors and all of its shadows (usually 1, but could be unlimited)
   shoulder:
