@@ -106,7 +106,8 @@ std::vector<std::string> load_calibration_config(bool& success, std::string& rob
     for(const auto gripper : all_grippers)
     {   std::string gripper_name = gripper.first.as<std::string>();
         YAML::Node single_gripper = all_grippers[gripper_name];
-        if(single_gripper["type"] && single_gripper["type"].as<std::string>() == "rack_and_pinion" &&
+        if(single_gripper["type"] &&
+        single_gripper["type"].as<std::string>("swing_arm") == "rack_and_pinion" &&
         single_gripper["calibrate"].as<bool>())
         {
             calibration_joints.push_back(gripper_name);
