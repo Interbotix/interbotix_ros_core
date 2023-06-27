@@ -552,7 +552,8 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     gripper.type = single_gripper["type"].as<std::string>("swing_arm");
     if (gripper.type != "swing_arm" && gripper.type != "rack_and_pinion")
     {
-      ROS_ERROR("[xs_sdk] Invalid gripper type. Please check the config.yaml file");
+      ROS_ERROR("Invalid Gripper Type: '%s'. Options are: 'swing_arm', 'rack_and_pinion'",
+        gripper.type.c_str());
       return false;
     }
     gripper.horn_radius = single_gripper["horn_radius"].as<float>(0.014);
