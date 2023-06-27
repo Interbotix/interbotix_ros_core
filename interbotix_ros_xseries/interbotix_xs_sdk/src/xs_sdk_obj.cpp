@@ -550,7 +550,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
     YAML::Node single_gripper = all_grippers[gripper_name];
     Gripper gripper;
     gripper.type = single_gripper["type"].as<std::string>("swing_arm");
-    if (gripper.type != "swing_arm" && gripper.type != "rack_and_pinion")
+    if (!(gripper.type == "swing_arm" || gripper.type == "rack_and_pinion"))
     {
       ROS_ERROR("Invalid Gripper Type: '%s'. Options are: 'swing_arm', 'rack_and_pinion'",
         gripper.type.c_str());
