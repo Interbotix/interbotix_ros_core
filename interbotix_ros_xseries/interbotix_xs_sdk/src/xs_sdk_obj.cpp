@@ -478,13 +478,13 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
   catch (YAML::BadFile &error)
   {
-    ROS_FATAL("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_FATAL("[xs_sdk] Motor Config file at '%s' was not found or has a bad format. Shutting down...", motor_configs_file.c_str());
     ROS_FATAL("[xs_sdk] YAML Error: '%s'", error.what());
     return false;
   }
   if (motor_configs.IsNull())
   {
-    ROS_FATAL("[xs_sdk] Motor Config file was not found. Shutting down...");
+    ROS_FATAL("[xs_sdk] Motor Config file at '%s' was not found. Shutting down...", motor_configs_file.c_str());
     return false;
   }
 
@@ -496,12 +496,12 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
   catch (YAML::BadFile &error)
   {
-    ROS_ERROR("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_ERROR("[xs_sdk] Motor Config file at '%s' was not found or has a bad format. Shutting down...", mode_configs_file.c_str());
     ROS_ERROR("[xs_sdk] YAML Error: '%s'", error.what());
     return false;
   }
   if (mode_configs.IsNull())
-    ROS_INFO("[xs_sdk] Mode Config file is empty.");
+    ROS_INFO("[xs_sdk] Mode Config file is empty. Will use defaults.");
 
   port = motor_configs["port"].as<std::string>(PORT);
   if (mode_configs["port"])
