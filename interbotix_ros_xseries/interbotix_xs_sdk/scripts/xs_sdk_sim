@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import sys
 import math
 import yaml
 import rospy
@@ -29,7 +30,8 @@ class InterbotixRobotXS(object):
         self.js_index_map = {}                  # Maps a joint name with its index in self.joint_states.position
         self.gripper_order = []                 # List of grippers as they appear in the 'joint_order' parameter in the Motor Configs YAML file
         self.get_urdf_info()
-        self.robot_get_motor_configs()
+        if not self.robot_get_motor_configs():
+            sys.exit(1)
         rospy.Service('torque_enable', TorqueEnable, self.robot_srv_torque_enable)
         rospy.Service('reboot_motors', Reboot, self.robot_srv_reboot_motors)
         rospy.Service('get_robot_info', RobotInfo, self.robot_srv_get_robot_info)
@@ -62,8 +64,9 @@ class InterbotixRobotXS(object):
             with open(motor_configs_filepath, "r") as yamlfile:
                 motor_configs = yaml.safe_load(yamlfile)
         except IOError:
-            rospy.logerr("[xs_sdk] Motor Config File was not found.")
+            rospy.logerr("[xs_sdk] Motor Config file at '%s' was not found. Shutting down..." % motor_configs_filepath)
             return False
+        rospy.loginfo("[xs_sdk] Loaded motor configs from '%s'." % motor_configs_filepath)
 
         try:
             with open(mode_configs_filepath, "r") as yamlfile:
@@ -71,9 +74,14 @@ class InterbotixRobotXS(object):
         except IOError:
             mode_configs = {}
             rospy.loginfo("[xs_sdk] Mode Config file was not found.")
+        rospy.loginfo("[xs_sdk] Loaded mode configs from '%s'." % mode_configs_filepath)
 
         joint_order = motor_configs["joint_order"]
         sleep_positions = motor_configs["sleep_positions"]
+
+        if len(joint_order) != len(sleep_positions):
+            rospy.logfatal("[xs_sdk] Error when parsing Motor Config file: Length of joint_order list (%d) does not match length of sleep_positions list (%d)." % (len(joint_order), len(sleep_positions)))
+            return False
 
         self.js_topic = motor_configs["joint_state_publisher"]["topic_name"]
 
@@ -142,6 +150,8 @@ class InterbotixRobotXS(object):
             profile_velocity = info.get("profile_velocity", 0)
             profile_acceleration = info.get("profile_acceleration", 0)
             self.robot_set_joint_operating_mode(sgl, mode, profile_type, profile_velocity, profile_acceleration)
+
+        return True
 
     ### @brief Set the operating mode for a specific group of motors or a single motor
     ### @param cmd_type - set to 'group' if changing the operating mode for a group of motors or 'single' if changing the operating mode for a single motor
@@ -214,7 +224,7 @@ class InterbotixRobotXS(object):
         return result
 
     ### @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
-    ### @param name - name of the gripper sevo to command
+    ### @param name - name of the gripper servo to command
     ### @param angular_position - desired gripper angular position [rad]
     ### @return - linear position [m] from a gripper finger to the center of the gripper servo horn
     def robot_convert_angular_position_to_linear(self, name, angular_position):
@@ -270,7 +280,7 @@ class InterbotixRobotXS(object):
                     rospy.loginfo("[xs_sdk] Expected state: %.2f, Actual State: %.2f." % (expected_state, actual_state))
 
         # execute the trajectory
-        self.exectue_joint_traj = True
+        self.execute_joint_traj = True
 
         points = msg.traj.points
         time_start = rospy.Time.now()
@@ -293,7 +303,7 @@ class InterbotixRobotXS(object):
                 period = (points[x].time_from_start - (rospy.Time.now() - time_start))
                 rospy.sleep(period)
 
-        self.exectue_joint_traj = False
+        self.execute_joint_traj = False
 
     ### @brief ROS Service to 'simulate' torquing the joints on the robot on/off (doesn't actually do anything)
     ### @param req - TorqueEnable service message request
@@ -370,7 +380,7 @@ class InterbotixRobotXS(object):
     ### @brief ROS Service that allows the user to set the motor firmware PID gains (doesn't actually do anything)
     ### @param req - MotorGains service message request
     ### @return <obj> - MotorGains service message response [unused]
-    ### @details - refer to the service defintion for details
+    ### @details - refer to the service definition for details
     def robot_srv_set_motor_pid_gains(self, req):
         return MotorGainsResponse()
 
