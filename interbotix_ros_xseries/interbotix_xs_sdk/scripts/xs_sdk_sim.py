@@ -229,14 +229,16 @@ class InterbotixRobotXS(Node):
         mode_groups = mode_configs.get('groups', {})
         singles = mode_configs.get('singles', {})
 
-        # populate self.gripper_map
         if grippers:
             for gpr, items in grippers.items():
                 self.gripper_map[gpr] = {
-                    'horn_radius': items['horn_radius'],
-                    'arm_length': items['arm_length'],
-                    'left_finger': items['left_finger'],
-                    'right_finger': items['right_finger']
+                    'type': items.get('type', 'swing_arm'),
+                    'horn_radius': items.get('horn_radius', 0.014),
+                    'pitch_radius': items.get('pitch_radius', 0.0127),
+                    'arm_length': items.get('arm_length', 0.024),
+                    'left_finger': items.get('left_finger', 'left_finger'),
+                    'right_finger': items.get('right_finger', 'right_finger'),
+                    'calibrate': items.get('calibrate', True)
                 }
         else:
             self.gripper_map = {}
@@ -456,12 +458,15 @@ class InterbotixRobotXS(Node):
         :param linear_position: desired distance [m] between the two gripper fingers
         :return result: angular position [rad] that achieves the desired linear distance
         """
-        half_dist = linear_position / 2.0
-        arm_length = self.gripper_map[name]['arm_length']
-        horn_radius = self.gripper_map[name]['horn_radius']
-        return math.pi/2.0 - math.acos(
-            (horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist)
-        )
+        if(self.gripper_map[name]['type'] == 'swing_arm'):
+            half_dist = linear_position / 2.0
+            arm_length = self.gripper_map[name]['arm_length']
+            horn_radius = self.gripper_map[name]['horn_radius']
+            return math.pi/2.0 - math.acos(
+                (horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist)
+            )
+        else:
+            return linear_position / 2 * self.gripper_map[name]['pitch_radius']
 
     def robot_convert_angular_position_to_linear(
         self,
@@ -475,12 +480,15 @@ class InterbotixRobotXS(Node):
         :param angular_position: desired gripper angular position [rad]
         :return: linear position [m] from a gripper finger to the center of the gripper servo horn
         """
-        arm_length = self.gripper_map[name]['arm_length']
-        horn_radius = self.gripper_map[name]['horn_radius']
-        a1 = horn_radius * math.sin(angular_position)
-        c = math.sqrt(horn_radius**2 - a1**2)
-        a2 = math.sqrt(arm_length**2 - c**2)
-        return a1 + a2
+        if(self.gripper_map[name]['type'] == 'swing_arm'):
+            arm_length = self.gripper_map[name]['arm_length']
+            horn_radius = self.gripper_map[name]['horn_radius']
+            a1 = horn_radius * math.sin(angular_position)
+            c = math.sqrt(horn_radius**2 - a1**2)
+            a2 = math.sqrt(arm_length**2 - c**2)
+            return a1 + a2
+        else:
+            return self.gripper_map[name]['pitch_radius'] * angular_position
 
     def robot_sub_command_group(self, msg: JointGroupCommand) -> None:
         """
