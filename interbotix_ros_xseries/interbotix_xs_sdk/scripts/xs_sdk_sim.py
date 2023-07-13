@@ -240,6 +240,8 @@ class InterbotixRobotXS(Node):
                     'right_finger': items.get('right_finger', 'right_finger'),
                     'calibrate': items.get('calibrate', True)
                 }
+                if (self.gripper_map[gpr]['type'] != 'swing_arm' and  self.gripper_map[gpr]['type'] != 'rack_and_pinion'):
+                    LOGGER.error((f"Invalid Gripper Type: '{self.gripper[grp]['type']}' . Options are: 'swing_arm', 'rack_and_pinion'"))
         else:
             self.gripper_map = {}
 
@@ -458,7 +460,7 @@ class InterbotixRobotXS(Node):
         :param linear_position: desired distance [m] between the two gripper fingers
         :return result: angular position [rad] that achieves the desired linear distance
         """
-        if(self.gripper_map[name]['type'] == 'swing_arm'):
+        if (self.gripper_map[name]['type'] == 'swing_arm'):
             half_dist = linear_position / 2.0
             arm_length = self.gripper_map[name]['arm_length']
             horn_radius = self.gripper_map[name]['horn_radius']
@@ -480,7 +482,7 @@ class InterbotixRobotXS(Node):
         :param angular_position: desired gripper angular position [rad]
         :return: linear position [m] from a gripper finger to the center of the gripper servo horn
         """
-        if(self.gripper_map[name]['type'] == 'swing_arm'):
+        if (self.gripper_map[name]['type'] == 'swing_arm'):
             arm_length = self.gripper_map[name]['arm_length']
             horn_radius = self.gripper_map[name]['horn_radius']
             a1 = horn_radius * math.sin(angular_position)
