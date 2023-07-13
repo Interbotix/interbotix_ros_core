@@ -238,7 +238,7 @@ class InterbotixRobotXS(Node):
                     'arm_length': items.get('arm_length', 0.024),
                     'left_finger': items.get('left_finger', 'left_finger'),
                     'right_finger': items.get('right_finger', 'right_finger'),
-                    'calibrate': items.get('calibrate', True)
+                    'calibrate': items.get('calibrate', False)
                 }
                 if (self.gripper_map[gpr]['type'] != 'swing_arm' and  self.gripper_map[gpr]['type'] != 'rack_and_pinion'):
                     LOGGER.error((f"Invalid Gripper Type: '{self.gripper[grp]['type']}' . Options are: 'swing_arm', 'rack_and_pinion'"))
