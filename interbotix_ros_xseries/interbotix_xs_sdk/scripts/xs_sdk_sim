@@ -224,23 +224,30 @@ class InterbotixRobotXS(object):
     ### @param linear_position - desired distance [m] between the two gripper fingers
     ### @return result - angular position [rad] that achieves the desired linear distance
     def robot_convert_linear_position_to_radian(self, name, linear_position):
-        half_dist = linear_position / 2.0
-        arm_length = self.gripper_map[name]["arm_length"]
-        horn_radius = self.gripper_map[name]["horn_radius"]
-        result = math.pi/2.0 - math.acos((horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist))
-        return result
+        if (self.gripper_map[name]['type'] == 'swing_arm'):
+            half_dist = linear_position / 2.0
+            arm_length = self.gripper_map[name]["arm_length"]
+            horn_radius = self.gripper_map[name]["horn_radius"]
+            result = math.pi/2.0 - math.acos((horn_radius**2 + half_dist**2 - arm_length**2) / (2 * horn_radius * half_dist))
+            return result
+        else:
+            return linear_position / 2 * self.gripper_map[name]['pitch_radius']
 
     ### @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
     ### @param name - name of the gripper servo to command
     ### @param angular_position - desired gripper angular position [rad]
     ### @return - linear position [m] from a gripper finger to the center of the gripper servo horn
     def robot_convert_angular_position_to_linear(self, name, angular_position):
-        arm_length = self.gripper_map[name]["arm_length"]
-        horn_radius = self.gripper_map[name]["horn_radius"]
-        a1 = horn_radius * math.sin(angular_position)
-        c = math.sqrt(horn_radius**2 - a1**2)
-        a2 = math.sqrt(arm_length**2 - c**2)
-        return a1 + a2
+        if (self.gripper_map[name]['type'] == 'swing_arm'):
+            arm_length = self.gripper_map[name]["arm_length"]
+            horn_radius = self.gripper_map[name]["horn_radius"]
+            a1 = horn_radius * math.sin(angular_position)
+            c = math.sqrt(horn_radius**2 - a1**2)
+            a2 = math.sqrt(arm_length**2 - c**2)
+            return a1 + a2
+        else:
+            return self.gripper_map[name]['pitch_radius'] * angular_position
+
 
     ### @brief ROS Subscriber callback function to command a group of joints
     ### @param msg - JointGroupCommand message dictating the joint group to command along with the actual commands
