@@ -241,7 +241,7 @@ class InterbotixRobotXS(Node):
                     'calibrate': items.get('calibrate', False)
                 }
                 if (self.gripper_map[gpr]['type'] != 'swing_arm' and  self.gripper_map[gpr]['type'] != 'rack_and_pinion'):
-                    LOGGER.error((f"Invalid Gripper Type: '{self.gripper[grp]['type']}' . Options are: 'swing_arm', 'rack_and_pinion'"))
+                    LOGGER.fatal((f"Invalid Gripper Type: '{self.gripper[grp]['type']}' . Options are: 'swing_arm', 'rack_and_pinion'"))
         else:
             self.gripper_map = {}
 
