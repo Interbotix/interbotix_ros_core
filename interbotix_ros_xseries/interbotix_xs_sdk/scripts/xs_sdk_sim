@@ -104,7 +104,7 @@ class InterbotixRobotXS(object):
                 'calibrate': items.get("calibrate", False)
             }
             if (self.gripper_map[gpr]["type"] != "swing_arm" and  self.gripper_map[gpr]["type"] != "rack_and_pinion"):
-                rospy.logerr("Invalid Gripper Type: '%s' . Options are: 'swing_arm', 'rack_and_pinion'", self.gripper_map[gpr]["type"])
+                rospy.logfatal("Invalid Gripper Type: '%s' . Options are: 'swing_arm', 'rack_and_pinion'", self.gripper_map[gpr]["type"])
 
         # populate self.sleep_map, self.gripper_order, and self.js_index_map
         # also, initialize self.joint_states
