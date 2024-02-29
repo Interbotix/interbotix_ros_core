@@ -63,7 +63,7 @@ bool getChassisCollision(int & collision)
 bool getChassisState(SystemState & state)
 {
   ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_SYS_STATE, (int *)&state);
+  return serial_driver->getEntry(INDEX_SYS_STATE, (int *)&state);  // NOLINT
 }
 
 bool getVersion(char * text)
@@ -75,7 +75,7 @@ bool getVersion(char * text)
 bool getJoyState(int & state)
 {
   ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_STATE_JOY, (int *)&state);
+  return serial_driver->getEntry(INDEX_STATE_JOY, (int *)&state);  // NOLINT
 }
 
 bool setText(const char * text)

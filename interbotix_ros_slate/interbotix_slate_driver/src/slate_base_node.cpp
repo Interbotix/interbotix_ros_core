@@ -178,7 +178,7 @@ void SlateBase::cmd_vel_callback(const Twist::SharedPtr msg)
 }
 
 bool SlateBase::set_text_callback(
-  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<rmw_request_id_t>/*request_header*/,
   const std::shared_ptr<SetString::Request> req,
   const std::shared_ptr<SetString::Response> res)
 {
@@ -192,7 +192,7 @@ bool SlateBase::set_text_callback(
 }
 
 bool SlateBase::motor_torque_status_callback(
-  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<rmw_request_id_t>/*request_header*/,
   const std::shared_ptr<SetBool::Request> req,
   const std::shared_ptr<SetBool::Response> res)
 {

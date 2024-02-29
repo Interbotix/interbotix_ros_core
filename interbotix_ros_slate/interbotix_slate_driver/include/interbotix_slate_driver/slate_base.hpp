@@ -29,6 +29,7 @@
 #ifndef INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
 #define INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
 
+#include <memory>
 #include <string>
 
 #include "geometry_msgs/msg/quaternion.hpp"
