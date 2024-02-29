@@ -59,12 +59,6 @@ target_link_libraries(slate_base
   slate_base_node
 )
 
-# add_custom_command(
-# 	OUTPUT copy_lib
-# 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/lib/* ${CATKIN_DEVEL_PREFIX}/lib
-# )
-# add_custom_target(COPY_CHASSIS_LIB ALL DEPENDS copy_lib slate_base)
-
 install(
   TARGETS slate_base_node
   ARCHIVE DESTINATION lib
