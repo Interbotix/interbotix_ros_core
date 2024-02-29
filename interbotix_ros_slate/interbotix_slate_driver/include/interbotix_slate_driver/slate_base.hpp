@@ -167,21 +167,27 @@ private:
 
   /**
    * @brief Process incoming screen text service request
+   * @param request_header Incoming RMW request identifier
    * @param req Service request containing desired text
    * @param res[out] Service response containing a success indication and a message
+   * @return true if service succeeded, false otherwise
    */
-  void set_text_callback(
-    SetString::Request::SharedPtr req,
-    SetString::Response::SharedPtr res);
+  bool set_text_callback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<SetString::Request> req,
+    const std::shared_ptr<SetString::Response> res);
 
   /**
    * @brief Process incoming motor torque status service request
+   * @param request_header Incoming RMW request identifier
    * @param req Service request containing desired motor torque status
    * @param res[out] Service response containing a success indication and a message
+   * @return true if service succeeded, false otherwise
    */
-  void motor_torque_status_callback(
-    SetBool::Request::SharedPtr req,
-    SetBool::Response::SharedPtr res);
+  bool motor_torque_status_callback(
+    const std::shared_ptr<rmw_request_id_t> request_header,
+    const std::shared_ptr<SetBool::Request> req,
+    const std::shared_ptr<SetBool::Response> res);
 
   /**
    * @brief Wrap angle

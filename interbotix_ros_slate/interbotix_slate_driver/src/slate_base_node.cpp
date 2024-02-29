@@ -41,7 +41,7 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
   cmd_vel_time_last_update_(get_clock()->now()),
   cmd_vel_timeout_(rclcpp::Duration(std::chrono::milliseconds(CMD_TIME_OUT)))
 {
-  using std::placeholders::_1, std::placeholders::_2;
+  using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
   declare_parameter<bool>("publish_tf", false);
   declare_parameter<std::string>("odom_frame_name", "odom");
@@ -61,11 +61,11 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
 
   srv_set_text_ = create_service<SetString>(
     "set_text",
-    std::bind(&SlateBase::set_text_callback, this, _1, _2));
+    std::bind(&SlateBase::set_text_callback, this, _1, _2, _3));
 
   srv_motor_torque_status_ = create_service<SetBool>(
     "set_motor_torque_status",
-    std::bind(&SlateBase::motor_torque_status_callback, this, _1, _2));
+    std::bind(&SlateBase::motor_torque_status_callback, this, _1, _2, _3));
 
   std::string dev;
   if (!base_driver::chassisInit(dev)) {
@@ -177,9 +177,10 @@ void SlateBase::cmd_vel_callback(const Twist::SharedPtr msg)
   cmd_vel_time_last_update_ = get_clock()->now();
 }
 
-void SlateBase::set_text_callback(
-  SetString::Request::SharedPtr req,
-  SetString::Response::SharedPtr res)
+bool SlateBase::set_text_callback(
+  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<SetString::Request> req,
+  const std::shared_ptr<SetString::Response> res)
 {
   res->success = base_driver::setText(req->data.c_str());
   if (res->success) {
@@ -187,11 +188,13 @@ void SlateBase::set_text_callback(
   } else {
     res->message = "Failed to set text to: '" + req->data + "'.";
   }
+  return true;
 }
 
-void SlateBase::motor_torque_status_callback(
-  SetBool::Request::SharedPtr req,
-  SetBool::Response::SharedPtr res)
+bool SlateBase::motor_torque_status_callback(
+  const std::shared_ptr<rmw_request_id_t> /*request_header*/,
+  const std::shared_ptr<SetBool::Request> req,
+  const std::shared_ptr<SetBool::Response> res)
 {
   res->success = base_driver::motorCtrl(!req->data);
   std::string enabled_disabled = req->data ? "enable" : "disable";
@@ -200,6 +203,7 @@ void SlateBase::motor_torque_status_callback(
   } else {
     res->message = "Failed to " + enabled_disabled + " motor torque.";
   }
+  return true;
 }
 
 float SlateBase::wrap_angle(float angle)
