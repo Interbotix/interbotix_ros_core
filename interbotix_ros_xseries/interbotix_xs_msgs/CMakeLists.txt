@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(interbotix_xs_msgs)
 
-find_package(catkin REQUIRED COMPONENTS 
+find_package(catkin REQUIRED COMPONENTS
     message_generation
     std_msgs
     trajectory_msgs
@@ -43,8 +43,8 @@ generate_messages(
 )
 
 catkin_package(
-    CATKIN_DEPENDS 
-    message_runtime 
-    std_msgs 
+    CATKIN_DEPENDS
+    message_runtime
+    std_msgs
     trajectory_msgs
 )
