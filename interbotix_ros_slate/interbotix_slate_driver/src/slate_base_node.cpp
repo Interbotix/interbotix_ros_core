@@ -8,7 +8,7 @@ SlateBase::SlateBase(ros::NodeHandle * node_handle)
     x_vel_(0.0), z_omega_(0.0), is_first_odom_(true), pose_{0}, right_motor_c_(0.0),
     left_motor_c_(0.0), chassis_state_(SystemState::SYS_INIT), publish_tf_(false), max_vel_x_(1.0),
     max_vel_z_(1.0), current_time_(ros::Time::now()), last_time_(ros::Time::now()),
-    cmd_vel_timeout_(ros::Duration(CMD_TIME_OUT / 1000))
+    cmd_vel_timeout_(ros::Duration(0, CMD_TIME_OUT * 1e6))
 {
   node.param<bool>("publish_tf", publish_tf_, false);
   node.param<std::string>("odom_frame_name", odom_frame_name_, "odom");
@@ -30,7 +30,7 @@ SlateBase::SlateBase(ros::NodeHandle * node_handle)
 
   std::string dev;
   if (!base_driver::chassisInit(dev)) {
-    ROS_ERROR("Failed to initialize base.");
+    ROS_FATAL("Failed to initialize base.");
     ::exit(EXIT_FAILURE);
   }
   ROS_INFO("Initalized base at port '%s'.", dev.c_str());
@@ -144,11 +144,11 @@ bool SlateBase::set_text_callback(
   res.success = base_driver::setText(req.data.c_str());
   if (res.success) {
     res.message = "Successfully set text to: '" + req.data + "'.";
-    return true;
   } else {
     res.message = "Failed to set text to: '" + req.data + "'.";
-    return false;
   }
+  ROS_INFO(res.message.c_str());
+  return res.success;
 }
 
 bool SlateBase::motor_torque_status_callback(
@@ -159,11 +159,11 @@ bool SlateBase::motor_torque_status_callback(
   std::string enabled_disabled = req.data ? "enable" : "disable";
   if (res.success) {
     res.message = "Successfully " + enabled_disabled + "d motor torque.";
-    return true;
   } else {
     res.message = "Failed to " + enabled_disabled + " motor torque.";
-    return false;
   }
+  ROS_INFO(res.message.c_str());
+  return res.success;
 }
 
 float SlateBase::wrap_angle(float angle)
