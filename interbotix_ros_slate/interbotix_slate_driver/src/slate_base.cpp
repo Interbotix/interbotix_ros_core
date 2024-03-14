@@ -2,7 +2,7 @@
 
 int main(int argc, char ** argv)
 {
-  ros::init(argc, argv, "tile_base");
+  ros::init(argc, argv, "slate_base");
   ros::NodeHandle node = ros::NodeHandle();
   auto driver = slate_base::SlateBase(&node);
 
