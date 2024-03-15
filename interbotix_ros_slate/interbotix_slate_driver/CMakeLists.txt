@@ -40,27 +40,27 @@ set(ROS_DEPENDENCIES
 
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
-add_library(slate_base_node
-  src/slate_base_node.cpp
+add_library(slate_base
+  src/slate_base.cpp
   src/base_driver.cpp
 )
 
-ament_target_dependencies(slate_base_node ${ROS_DEPENDENCIES})
+ament_target_dependencies(slate_base ${ROS_DEPENDENCIES})
 
-target_link_libraries(slate_base_node
+target_link_libraries(slate_base
   ${serial_driver}
 )
 
-add_executable(slate_base
-  src/slate_base.cpp
+add_executable(slate_base_node
+  src/slate_base_node.cpp
 )
 
-target_link_libraries(slate_base
-  slate_base_node
+target_link_libraries(slate_base_node
+  slate_base
 )
 
 install(
-  TARGETS slate_base_node
+  TARGETS slate_base
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin
@@ -68,7 +68,7 @@ install(
 
 install(
   TARGETS
-    slate_base
+    slate_base_node
   RUNTIME DESTINATION
     lib/${PROJECT_NAME}
 )
