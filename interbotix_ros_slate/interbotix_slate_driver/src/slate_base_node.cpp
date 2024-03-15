@@ -189,9 +189,8 @@ bool SlateBase::set_text_callback(
   } else {
     res->message = "Failed to set text to: '" + req->data + "'.";
     RCLCPP_ERROR(get_logger(), res->message.c_str());
-    return false;
   }
-  return true;
+  return res->success;
 }
 
 bool SlateBase::motor_torque_status_callback(
@@ -207,9 +206,8 @@ bool SlateBase::motor_torque_status_callback(
   } else {
     res->message = "Failed to " + enabled_disabled + " motor torque.";
     RCLCPP_ERROR(get_logger(), res->message.c_str());
-    return false;
   }
-  return true;
+  return res->success;
 }
 
 float SlateBase::wrap_angle(float angle)
