@@ -144,10 +144,11 @@ bool SlateBase::set_text_callback(
   res.success = base_driver::setText(req.data.c_str());
   if (res.success) {
     res.message = "Successfully set text to: '" + req.data + "'.";
+    ROS_INFO(res.message.c_str());
   } else {
     res.message = "Failed to set text to: '" + req.data + "'.";
+    ROS_ERROR(res.message.c_str());
   }
-  ROS_INFO(res.message.c_str());
   return res.success;
 }
 
@@ -159,10 +160,11 @@ bool SlateBase::motor_torque_status_callback(
   std::string enabled_disabled = req.data ? "enable" : "disable";
   if (res.success) {
     res.message = "Successfully " + enabled_disabled + "d motor torque.";
+    ROS_INFO(res.message.c_str());
   } else {
     res.message = "Failed to " + enabled_disabled + " motor torque.";
+    ROS_ERROR(res.message.c_str());
   }
-  ROS_INFO(res.message.c_str());
   return res.success;
 }
 
