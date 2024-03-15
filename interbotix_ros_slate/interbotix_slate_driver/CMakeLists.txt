@@ -38,33 +38,33 @@ include_directories(
 
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
 
-add_library(slate_base_node
-  src/slate_base_node.cpp
+add_library(slate_base
+  src/slate_base.cpp
   src/base_driver.cpp
 )
 
-target_link_libraries(slate_base_node
+target_link_libraries(slate_base
   ${serial_driver}
   ${catkin_LIBRARIES}
 )
 
-add_executable(slate_base
-  src/slate_base.cpp
+add_executable(slate_base_node
+  src/slate_base_node.cpp
 )
 
-target_link_libraries(slate_base
-  slate_base_node
+target_link_libraries(slate_base_node
+  slate_base
 )
 
 add_custom_command(
 	OUTPUT copy_lib
 	COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_CURRENT_SOURCE_DIR}/lib/* ${CATKIN_DEVEL_PREFIX}/lib
 )
-add_custom_target(COPY_CHASSIS_LIB ALL DEPENDS copy_lib slate_base)
+add_custom_target(COPY_CHASSIS_LIB ALL DEPENDS copy_lib slate_base_node)
 
 install(
   TARGETS
-    slate_base
+    slate_base_node
   RUNTIME DESTINATION
     ${CATKIN_PACKAGE_BIN_DESTINATION}
 )
