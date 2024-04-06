@@ -82,10 +82,102 @@ void InterbotixRobotXS::robot_init_parameters()
   this->get_parameter("mode_configs", filepath_mode_configs);
   this->get_parameter("load_configs", write_eeprom_on_startup);
   this->get_parameter("xs_driver_logging_level", xs_driver_logging_level);
-  YAML::Node pub_configs = YAML::LoadFile(filepath_motor_configs)["joint_state_publisher"];
+  const auto motor_configs = YAML::LoadFile(filepath_motor_configs);
+  YAML::Node pub_configs = motor_configs["joint_state_publisher"];
   timer_hz = pub_configs["update_rate"].as<int>(100);
   pub_states = pub_configs["publish_states"].as<bool>(true);
   js_topic = pub_configs["topic_name"].as<std::string>("joint_states");
+
+  // NOTE: YOU LIANG Custom implementation of joint space compliant control
+  // check if compliant control is defined in motor_configs["compliant_control"]
+  YAML::Node compliant_control = motor_configs["compliant_control"];
+  if (compliant_control) {
+    RCLCPP_WARN(LOGGER, "Initializing compliant control...");
+    robot_init_compliant_control(compliant_control);
+  }
+}
+
+void InterbotixRobotXS::robot_init_compliant_control(YAML::Node compliant_config)
+{
+  /*
+  The config for compliant control should have the following format:
+  joint_name:
+    lower_limit: -1.0
+    upper_limit: 1.0
+    clip_control_limit: 0.0
+    p_gain: 0.1
+  */
+  for (const auto& joint : compliant_config) {
+    std::string joint_name = joint.first.as<std::string>();
+    double lower_limit = joint.second["lower_limit"].as<double>();
+    double upper_limit = joint.second["upper_limit"].as<double>();
+    double p_gain = joint.second["p_gain"].as<double>();
+    double clip_control_limit = joint.second["clip_control_limit"].as<double>();
+
+    InterbotixRobotXS::CompliantControlConfig compliant_control_config
+      = {lower_limit, upper_limit, p_gain, clip_control_limit};
+    compliant_control_configs[joint_name] = compliant_control_config;
+
+    // print out the compliant control parameters
+    RCLCPP_INFO(
+      LOGGER,
+      "Joint: %s, Lower Limit: %.2f, Upper Limit: %.2f, P Gain: %.2f",
+      joint_name.c_str(), lower_limit, upper_limit, p_gain);
+  }
+}
+
+std::map<std::string, double> InterbotixRobotXS::get_compliant_offsets()
+{
+  sensor_msgs::msg::JointState current_state = joint_states; // Assume joint_states is up to date
+  // https://docs.ros.org/en/melodic/api/sensor_msgs/html/msg/JointState.html
+
+  std::map<std::string, double> compliant_offsets;
+
+  for (size_t i = 0; i < current_state.name.size(); ++i) {
+    const std::string& joint_name = current_state.name[i];
+    double effort = current_state.effort[i];
+
+    // only apply compliant control to joints that are defined in compliant_control_configs
+    if (compliant_control_configs.find(joint_name) != compliant_control_configs.end()) {
+      auto [lower_limit, upper_limit, p_gain, clip_control_limit] = \
+        compliant_control_configs[joint_name];
+
+      // If Effort is outside limits, calculate error and apply P control
+      if (effort < lower_limit || effort > upper_limit) {
+        const double error = (effort < lower_limit) ? (effort - lower_limit) : (effort - upper_limit);
+        double control_signal = - error * p_gain;
+
+        // clip control signal to prevent overcompensation by checking
+        if (std::abs(control_signal) > std::abs(clip_control_limit))
+        {
+          control_signal = std::copysign(clip_control_limit, control_signal);
+        }
+        compliant_offsets[joint_name] = control_signal;
+
+        RCLCPP_INFO(
+          LOGGER,
+          " Compliant Joint: %s, Effort: %.2f, Error: %.2f, Control Signal: %.2f",
+          joint_name.c_str(), effort, error, control_signal);
+      }
+    }
+  }
+  return compliant_offsets;
+}
+
+void InterbotixRobotXS::apply_compliant_offsets(
+  std::map<std::string, double> compliant_offsets
+)
+{
+  for (auto const & [joint_name, offset] : compliant_offsets) {
+    float position;
+    xs_driver->get_joint_state(joint_name, &position);
+    float new_position = position + offset;
+    // RCLCPP_INFO(
+    //   LOGGER,
+    //   "Apply Joint: %s, Current Position: %.2f, Offset: %.2f, New Position: %.2f",
+    //   joint_name.c_str(), position, offset, new_position);
+    xs_driver->write_joint_command(joint_name, new_position);
+  }
 }
 
 void InterbotixRobotXS::robot_init_publishers()
@@ -166,6 +258,21 @@ void InterbotixRobotXS::robot_wait_for_joint_states()
 
 void InterbotixRobotXS::robot_sub_command_group(const JointGroupCommand::SharedPtr msg)
 {
+  auto compliant_offsets = get_compliant_offsets();
+
+  // NOTE: YOU LIANG custom impl for joint based compliant control
+  // with custom PID gains
+  // https://emanual.robotis.com/docs/en/dxl/x/xm430-w350/
+  std::vector<int32_t> gains = {
+    600, // kp_pos NOTE: default value is 900
+    0,   // ki_pos
+    0,   // kd_pos
+    0,   // k1
+    0,   // k2
+    0,   // kp_vel
+    0    // ki_vel
+  };
+  xs_driver->set_motor_pid_gains(cmd_type::GROUP, msg->name, gains);
   xs_driver->write_commands(msg->name, msg->cmd);
 }
 
@@ -352,6 +459,11 @@ bool InterbotixRobotXS::robot_srv_set_motor_pid_gains(
     return false;
   }
 
+  RCLCPP_INFO(
+    LOGGER,
+    "Setting PID gains for %s motor '%s'.",
+    req->cmd_type.c_str(), req->name.c_str());
+
   std::vector<int32_t> gains = {
     req->kp_pos,
     req->ki_pos,
@@ -435,7 +547,6 @@ void InterbotixRobotXS::robot_execute_trajectory()
         &InterbotixRobotXS::robot_execute_trajectory,
         this));
   }
-
 
   // write commands to the motors depending on cmd_type and mode
   if (joint_traj_cmd->cmd_type == cmd_type::GROUP) {
@@ -521,6 +632,13 @@ void InterbotixRobotXS::robot_update_joint_states()
   joint_states = joint_state_msg;
   if (pub_states) {
     pub_joint_states->publish(joint_state_msg);
+  }
+
+  // if compliant control is enabled, check and apply it every callback
+  if (!compliant_control_configs.empty())
+  {
+    auto compliant_offsets = get_compliant_offsets();
+    apply_compliant_offsets(compliant_offsets);
   }
 }
 
