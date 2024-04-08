@@ -137,10 +137,12 @@ bool chassisControl(float aim_x_vel, float aim_z_omega)
   return serial_driver->setEntry(INDEX_AIM_CHASSIS_VEL, &aim_x_vel) &&
          serial_driver->setEntry(INDEX_AIM_CHASSIS_POS_OR_OMEGA, &aim_z_omega);
 }
+
 /**
  * @brief Get body velocity
  * @param x_vel m/s
  * @param z_omega rad/s
+ * @return true if driver was able to retrieve requested values, false otherwise
  */
 bool getChassisInfo(float & x_vel, float & z_omega)
 {
@@ -148,11 +150,13 @@ bool getChassisInfo(float & x_vel, float & z_omega)
   return serial_driver->getEntry(INDEX_CHASSIS_VEL, &x_vel) &&
          serial_driver->getEntry(INDEX_CHASSIS_POS_OR_OMEGA, &z_omega);
 }
+
 /**
  * @brief Get chassis odometry
  * @param odom_x odom along the x-axis
  * @param odom_y odom along the y-axis
  * @param odom_theta odom around the z-axis
+ * @return true if driver was able to retrieve requested values, false otherwise
  */
 bool getChassisOdom(float & odom_x, float & odom_y, float & odom_theta)
 {
