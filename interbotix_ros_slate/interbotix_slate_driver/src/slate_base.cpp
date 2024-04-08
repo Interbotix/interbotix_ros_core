@@ -127,7 +127,7 @@ void SlateBase::update()
     is_first_odom_ = false;
   }
 
-  // publish the transform over tf
+  // create transform
   tf2::Quaternion q;
   q.setRPY(0, 0, wrap_angle(theta_ - pose_[2]));
   auto odom_quat = tf2::toMsg(q);
@@ -148,19 +148,19 @@ void SlateBase::update()
   if (publish_tf_) {
     tf_broadcaster_odom_.sendTransform(odom_trans);
   }
-  // next, we'll publish the odometry message over ROS
+  // publish odometry
   auto odom = Odometry();
   odom.header.stamp = current_time_;
   odom.header.frame_id = odom_frame_name_;
 
-  // set the position
+  // set position
   odom.pose.pose.position.x = odom_trans.transform.translation.x;
   odom.pose.pose.position.y = odom_trans.transform.translation.y;
   odom.pose.pose.position.z = 0.0;
   odom.pose.pose.orientation = odom_quat;
   odom.pose.covariance[0] = (chassis_state_ == SystemState::SYS_ESTOP) ? -1 : 1;
 
-  // set the velocity
+  // set velocity
   odom.child_frame_id = base_frame_name_;
   odom.twist.twist.linear.x = x_vel_;
   odom.twist.twist.linear.y = 0;
