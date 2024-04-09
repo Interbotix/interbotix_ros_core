@@ -1,5 +1,5 @@
-#ifndef __CHASSIS_CONTROL_H_
-#define __CHASSIS_CONTROL_H_
+#ifndef INTERBOTIX_SLATE_DRIVER__BASE_DRIVER_H_
+#define INTERBOTIX_SLATE_DRIVER__BASE_DRIVER_H_
 
 #include <string>
 
@@ -41,4 +41,4 @@ bool setStateLight(int light);
 
 }  // namespace base_driver
 
-#endif  // __CHASSIS_CONTROL_H_
+#endif  // INTERBOTIX_SLATE_DRIVER__BASE_DRIVER_H_

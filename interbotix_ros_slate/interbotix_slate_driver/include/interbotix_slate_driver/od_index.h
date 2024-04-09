@@ -1,5 +1,5 @@
-#ifndef __OD_INDEX_H_
-#define __OD_INDEX_H_
+#ifndef INTERBOTIX_SLATE_DRIVER__OD_INDEX_H_
+#define INTERBOTIX_SLATE_DRIVER__OD_INDEX_H_
 
 #define PORT "chassis"
 
@@ -55,4 +55,4 @@ typedef enum
   INDEX_SYS_CMD = 22,
 } OdIndex;
 
-#endif  // __OD_INDEX_H_
+#endif  // INTERBOTIX_SLATE_DRIVER__OD_INDEX_H_

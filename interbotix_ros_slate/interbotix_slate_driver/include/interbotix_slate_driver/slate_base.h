@@ -1,3 +1,6 @@
+#ifndef INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
+#define INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
+
 #include "geometry_msgs/Twist.h"
 #include "interbotix_slate_driver/base_driver.h"
 #include "interbotix_slate_driver/serial_driver.h"
@@ -153,3 +156,5 @@ private:
 };
 
 }  // namespace slate_base
+
+#endif  // INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_

@@ -1,5 +1,5 @@
-#ifndef __SERIAL_DRIVER_H_
-#define __SERIAL_DRIVER_H_
+#ifndef INTERBOTIX_SLATE_DRIVER__SERIAL_DRIVER_H_
+#define INTERBOTIX_SLATE_DRIVER__SERIAL_DRIVER_H_
 
 #include <string>
 #define ASSERT(expr, fail) (static_cast<bool>(expr) ? void(0) : (fail))
@@ -28,4 +28,4 @@ class SerialDriver
   std::string portname_;
 };
 
-#endif  // __SERIAL_DRIVER_H_
+#endif  // INTERBOTIX_SLATE_DRIVER__SERIAL_DRIVER_H_
