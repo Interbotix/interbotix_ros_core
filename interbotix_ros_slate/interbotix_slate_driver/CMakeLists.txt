@@ -42,6 +42,7 @@ add_library(slate_base
   src/slate_base.cpp
   src/base_driver.cpp
 )
+add_dependencies(slate_base ${slate_base_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(slate_base
   ${serial_driver}
@@ -51,6 +52,7 @@ target_link_libraries(slate_base
 add_executable(slate_base_node
   src/slate_base_node.cpp
 )
+add_dependencies(slate_base_node ${slate_base_node_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(slate_base_node
   slate_base
