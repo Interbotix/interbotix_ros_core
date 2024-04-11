@@ -25,8 +25,8 @@ jobs:
         with:
           submodules: recursive
           path: src/interbotix_ros_core
-      - uses: 'ros-industrial/industrial_ci@master'
       - name: Prepare Workspace
         run: |
           rm src/interbotix_ros_core/interbotix_ros_xseries/COLCON_IGNORE
+      - uses: 'ros-industrial/industrial_ci@master'
         env: ${{matrix.env}}
