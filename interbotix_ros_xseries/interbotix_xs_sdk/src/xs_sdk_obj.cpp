@@ -568,6 +568,15 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 
   YAML::Node joint_order = motor_configs["joint_order"];
   YAML::Node sleep_positions = motor_configs["sleep_positions"];
+
+  if (joint_order.size() != sleep_positions.size())
+  {
+    ROS_FATAL(
+      "[xs_sdk] Error when parsing Motor Config file: Length of joint_order list (%d) does not match length of sleep_positions list (%d).",
+      joint_order.size(), sleep_positions.size());
+    return false;
+  }
+
   JointGroup all_joints;
   all_joints.joint_num = (uint8_t) joint_order.size();
   all_joints.mode = "position";
