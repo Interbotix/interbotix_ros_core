@@ -478,13 +478,13 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
   catch (YAML::BadFile &error)
   {
-    ROS_FATAL("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_FATAL("[xs_sdk] Motor Config file at '%s' was not found or has a bad format. Shutting down...", motor_configs_file.c_str());
     ROS_FATAL("[xs_sdk] YAML Error: '%s'", error.what());
     return false;
   }
   if (motor_configs.IsNull())
   {
-    ROS_FATAL("[xs_sdk] Motor Config file was not found. Shutting down...");
+    ROS_FATAL("[xs_sdk] Motor Config file at '%s' was not found. Shutting down...", motor_configs_file.c_str());
     return false;
   }
 
@@ -496,12 +496,12 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   }
   catch (YAML::BadFile &error)
   {
-    ROS_ERROR("[xs_sdk] Motor Config file was not found or has a bad format. Shutting down...");
+    ROS_ERROR("[xs_sdk] Motor Config file at '%s' was not found or has a bad format. Shutting down...", mode_configs_file.c_str());
     ROS_ERROR("[xs_sdk] YAML Error: '%s'", error.what());
     return false;
   }
   if (mode_configs.IsNull())
-    ROS_INFO("[xs_sdk] Mode Config file is empty.");
+    ROS_INFO("[xs_sdk] Mode Config file is empty. Will use defaults.");
 
   port = motor_configs["port"].as<std::string>(PORT);
   if (mode_configs["port"])
@@ -541,6 +541,15 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
 
   YAML::Node joint_order = motor_configs["joint_order"];
   YAML::Node sleep_positions = motor_configs["sleep_positions"];
+
+  if (joint_order.size() != sleep_positions.size())
+  {
+    ROS_FATAL(
+      "[xs_sdk] Error when parsing Motor Config file: Length of joint_order list (%d) does not match length of sleep_positions list (%d).",
+      joint_order.size(), sleep_positions.size());
+    return false;
+  }
+
   JointGroup all_joints;
   all_joints.joint_num = (uint8_t) joint_order.size();
   all_joints.mode = "position";
