@@ -2,13 +2,21 @@ name: build-slate-noetic
 
 on:
   push:
+    paths-ignore:
+      - 'interbotix_ros_uxarms/**'
+      - 'interbotix_ros_xseries/**'
     branches:
       - main
       - devel
+      - noetic
   pull_request:
+    paths-ignore:
+      - 'interbotix_ros_uxarms/**'
+      - 'interbotix_ros_xseries/**'
     branches:
       - main
       - devel
+      - noetic
   workflow_dispatch:
 
 defaults:
