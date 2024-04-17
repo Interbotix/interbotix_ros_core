@@ -2,10 +2,16 @@ name: build-xs-noetic
 
 on:
   push:
+    paths-ignore:
+      - 'interbotix_ros_slate/**'
+      - 'interbotix_ros_uxarms/**'
     branches:
       - main
       - devel
   pull_request:
+    paths-ignore:
+      - 'interbotix_ros_slate/**'
+      - 'interbotix_ros_uxarms/**'
     branches:
       - main
       - devel
