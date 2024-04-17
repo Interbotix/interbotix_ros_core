@@ -1,0 +1,34 @@
+name: build-slate-noetic
+
+on:
+  push:
+    branches:
+      - main
+      - devel
+  pull_request:
+    branches:
+      - main
+      - devel
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  slate-noetic:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: noetic,  ROS_REPO: main, BUILDER: catkin_tools}
+          - {ROS_DISTRO: noetic,  ROS_REPO: main, BUILDER: catkin_make}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create src directory for slate
+        run: |
+          rm interbotix_ros_slate/CATKIN_IGNORE
+          mkdir src
+          mv interbotix_ros_slate src
+      - uses: 'ros-industrial/industrial_ci@master'
+        env: ${{matrix.env}}
