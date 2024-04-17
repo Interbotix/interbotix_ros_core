@@ -24,9 +24,6 @@ jobs:
       - uses: actions/checkout@v3
         with:
           submodules: recursive
-          path: src/interbotix_ros_core
-      - name: Prepare Workspace
-        run: |
-          rm src/interbotix_ros_core/interbotix_ros_xseries/COLCON_IGNORE
+          path: src
       - uses: 'ros-industrial/industrial_ci@master'
         env: ${{matrix.env}}
