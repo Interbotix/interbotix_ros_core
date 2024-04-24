@@ -572,7 +572,7 @@ bool InterbotixRobotXS::robot_get_motor_configs(void)
   if (joint_order.size() != sleep_positions.size())
   {
     ROS_FATAL(
-      "[xs_sdk] Error when parsing Motor Config file: Length of joint_order list (%d) does not match length of sleep_positions list (%d).",
+      "[xs_sdk] Error when parsing Motor Config file: Length of joint_order list (%ld) does not match length of sleep_positions list (%ld).",
       joint_order.size(), sleep_positions.size());
     return false;
   }
