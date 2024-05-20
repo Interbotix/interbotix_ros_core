@@ -22,3 +22,6 @@ SUBSYSTEM=="tty", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6001", ATTRS{seria
 
 # LifeCam Cinema
 SUBSYSTEM=="video4linux", ATTRS{idVendor}=="045e", ATTRS{idProduct}=="0812", ATTR{index}=="0", SYMLINK+="lifecam"
+
+# Footswitch
+ACTION!="remove", KERNEL=="event[0-9]*", ENV{ID_VENDOR_ID}=="3553", ENV{ID_MODEL_ID}=="b001", ENV{LIBINPUT_IGNORE_DEVICE}="1"
