@@ -1,5 +1,5 @@
-
 #include <memory>
+
 #include "interbotix_footswitch_driver/footswitch_driver.hpp"
 
 // ACTION!="remove", KERNEL=="event[0-9]*", \
@@ -13,27 +13,33 @@ namespace footswitch_driver
 FootSwitch::FootSwitch(const rclcpp::NodeOptions & options)
 : rclcpp::Node("footswitch_node")
 {
-  int res;
-
   // Initialize the hidapi library
-  res = hid_init();
+  hid_init();
 
   // Open the device using the VID, PID
-  handle_ = hid_open(vend_id, prod_id, NULL);
+  handle_ = hid_open(VEND_ID, PROD_ID, NULL);
   if (!handle_) {
-    RCLCPP_FATAL(get_logger(), "Unable to open device. Exiting...");
+    RCLCPP_FATAL(
+      get_logger(),
+      "Unable to open device with VID '%x' and PID '%x'. Exiting...",
+      VEND_ID, PROD_ID);
     hid_exit();
-     ::exit(1);
+    ::exit(1);
   }
 
   // Set the hid_read() function to be non-blocking.
   hid_set_nonblocking(handle_, 1);
 
+  int update_rate;
+  declare_parameter("update_rate", 10);
+  get_parameter("update_rate", update_rate);
+
+  update_period_ms_ = static_cast<int64_t>((1.0 / static_cast<float>(update_rate)) * 1'000);
+
   pub_footswitch_state_ = create_publisher<FootswitchState>("state", 10);
-  pub_footswitch_state_->publish(FootswitchState());
 
   tmr_update_state_ = create_wall_timer(
-    std::chrono::milliseconds(100),
+    std::chrono::milliseconds(update_period_ms_),
     std::bind(&FootSwitch::update_state, this));
 
   RCLCPP_INFO(get_logger(), "Initialized Footswitch driver.");
@@ -53,20 +59,21 @@ FootSwitch::~FootSwitch()
 
 void FootSwitch::update_state()
 {
-  int res;
+  int res = 0;
   unsigned char buf[65];
-  int i;
-  res = 0;
-  i = 0;
+  int i = 0;
+
+  // Continue to poll if no readings have been received
   while (res == 0 && rclcpp::ok()) {
     res = hid_read(handle_, buf, sizeof(buf));
     if (res < 0) {
-      RCLCPP_ERROR(get_logger(), "Unable to read(): %ls\n", hid_error(handle_));
+      RCLCPP_ERROR(get_logger(), "Unable to read from footswitch: %ls", hid_error(handle_));
       break;
     }
 
     i++;
-    if (i >= 100) {
+    // Break after update period
+    if (i >= update_period_ms_) {
       break;
     }
 
@@ -103,12 +110,5 @@ void FootSwitch::update_state()
 
 }  // namespace footswitch_driver
 
-
-int main(int argc, char ** argv)
-{
-  rclcpp::init(argc, argv);
-  auto footswitch_node = std::make_shared<footswitch_driver::FootSwitch>();
-  rclcpp::spin(footswitch_node);
-
-  return 0;
-}
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(footswitch_driver::FootSwitch)
