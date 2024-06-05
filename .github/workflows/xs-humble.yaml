@@ -21,9 +21,13 @@ jobs:
           - {ROS_DISTRO: humble, ROS_REPO: main}
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
         with:
           submodules: recursive
           path: src
+      - name: Prepare Workspace
+        run: |
+          rm src/interbotix_ros_common_drivers/COLCON_IGNORE
       - uses: 'ros-industrial/industrial_ci@master'
-        env: ${{matrix.env}}
+        with:
+          config: ${{toJSON(matrix.env)}}
