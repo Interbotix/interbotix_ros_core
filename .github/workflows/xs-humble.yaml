@@ -27,6 +27,7 @@ jobs:
           path: src/interbotix_ros_core
       - name: Prepare Workspace
         run: |
+          rm src/interbotix_ros_core/interbotix_ros_common_drivers/COLCON_IGNORE
           rm src/interbotix_ros_core/interbotix_ros_xseries/COLCON_IGNORE
       - uses: 'ros-industrial/industrial_ci@master'
         env: ${{matrix.env}}
