@@ -24,10 +24,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-          path: src
+          path: src/interbotix_ros_core
       - name: Prepare Workspace
         run: |
-          rm src/interbotix_ros_common_drivers/COLCON_IGNORE
+          rm src/interbotix_ros_core/interbotix_ros_common_drivers/COLCON_IGNORE
+          rm src/interbotix_ros_core/interbotix_ros_xseries/COLCON_IGNORE
       - uses: 'ros-industrial/industrial_ci@master'
         with:
           config: ${{toJSON(matrix.env)}}
