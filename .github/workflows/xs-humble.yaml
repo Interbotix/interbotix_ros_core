@@ -31,6 +31,6 @@ jobs:
           rm src/interbotix_ros_core/interbotix_ros_xseries/COLCON_IGNORE
       - name: Install Dependencies
         run: |
-          sudo apt-get install libhidapi-dev
+          sudo apt-get install pkg-config
       - uses: 'ros-industrial/industrial_ci@master'
         env: ${{matrix.env}}
