@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10.0)
+cmake_minimum_required(VERSION 3.12.0)
 project(interbotix_footswitch_driver)
 
 find_package(ament_cmake REQUIRED)
@@ -6,6 +6,7 @@ find_package(interbotix_footswitch_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 
+find_package(PkgConfig REQUIRED)
 add_subdirectory(dependencies/hidapi)
 
 include_directories(include)
