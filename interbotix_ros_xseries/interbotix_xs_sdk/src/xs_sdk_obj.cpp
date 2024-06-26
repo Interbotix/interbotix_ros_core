@@ -1160,13 +1160,15 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
 
   if (dxl_wb.getProtocolVersion() == 2.0f)
   {
+    bool syncread_failed = false;
     // Execute sync read from all pinged DYNAMIXELs
     if (!dxl_wb.syncRead(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
                           all_ptr->joint_ids.data(),
                           all_ptr->joint_num,
                           &log))
     {
-      ROS_ERROR("[xs_sdk] %s", log);
+      ROS_ERROR("[xs_sdk] Failed syncRead: %s", log);
+      syncread_failed = true;
     }
 
     // Gets present current of all servos
@@ -1178,8 +1180,9 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
                                 get_current.data(),
                                 &log))
     {
-      ROS_ERROR("[xs_sdk] %s", log);
-    }             
+      ROS_ERROR("[xs_sdk] Failed getSyncReadData for Present_Current: %s", log);
+      syncread_failed = true;
+    }
 
     // Gets present velocity of all servos
     if (!dxl_wb.getSyncReadData(SYNC_READ_HANDLER_FOR_PRESENT_POSITION_VELOCITY_CURRENT,
@@ -1190,7 +1193,8 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
                                 get_velocity.data(),
                                 &log))
     {
-      ROS_ERROR("[xs_sdk] %s", log);
+      ROS_ERROR("[xs_sdk] Failed getSyncReadData for Present_Velocity: %s", log);
+      syncread_failed = true;
     }
 
     // Gets present position of all servos
@@ -1202,7 +1206,20 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
                                 get_position.data(),
                                 &log))
     {
-      ROS_ERROR("[xs_sdk] %s", log);
+      ROS_ERROR("[xs_sdk] Failed getSyncReadData for Present_Position: %s", log);
+      syncread_failed = true;
+    }
+
+    // If our syncread failed, check to see what motors we can actually read from.
+    // This will provide some additional troubleshooting information
+    if (syncread_failed) {
+      for (const auto id : all_ptr->joint_ids) {
+        int32_t value = 0;
+        if (!dxl_wb.itemRead(id, "LED", &value)) {
+          ROS_ERROR("[xs_sdk] Failed to read from DYNAMIXEL ID: %d", id);
+        }
+      }
+      return;
     }
 
     uint8_t index = 0;
