@@ -1210,7 +1210,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
       syncread_failed = true;
     }
 
-    // If our syncread failed, check to see what motors we can actually read from.
+    // If our syncread failed, check to see what motors we can actually read from
     // This will provide some additional troubleshooting information
     if (syncread_failed) {
       for (const auto id : all_ptr->joint_ids) {
