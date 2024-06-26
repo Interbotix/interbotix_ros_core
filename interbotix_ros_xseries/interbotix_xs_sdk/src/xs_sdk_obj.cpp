@@ -1219,7 +1219,7 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
           ROS_ERROR("[xs_sdk] Failed to read from DYNAMIXEL ID: %d", id);
         }
       }
-      return;
+      // return;
     }
 
     uint8_t index = 0;
