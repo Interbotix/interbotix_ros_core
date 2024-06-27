@@ -1210,16 +1210,20 @@ void InterbotixRobotXS::robot_update_joint_states(const ros::TimerEvent &e)
       syncread_failed = true;
     }
 
-    // If our syncread failed, check to see what motors we can actually read from
-    // This will provide some additional troubleshooting information
-    if (syncread_failed) {
-      for (const auto id : all_ptr->joint_ids) {
+    // If syncread failed, check to see what motors we can actually read from. This will provide
+    // some additional troubleshooting information on what motors may have been disconnected or are
+    // unresponsive
+    if (syncread_failed)
+    {
+      for (const auto id : all_ptr->joint_ids)
+      {
         int32_t value = 0;
-        if (!dxl_wb.itemRead(id, "LED", &value)) {
+        // Try to read from an item available on all motor models
+        if (!dxl_wb.itemRead(id, "ID", &value))
+        {
           ROS_ERROR("[xs_sdk] Failed to read from DYNAMIXEL ID: %d", id);
         }
       }
-      // return;
     }
 
     uint8_t index = 0;
