@@ -39,6 +39,9 @@ joint_state_publisher:                                                          
   update_rate: 100                                                              # Optional; rate at which the motor states are sampled (and potentially published) in Hz; defaults to '100'
   publish_states: true                                                          # Optional; boolean that either enables or disables the Publisher; defaults to 'true'
   topic_name: joint_states                                                      # Optional; desired JointState topic name; defaults to 'joint_states'
+  read_failure_behavior: 0                                                      # Optional; the behavior on joint state read failures; defaults to 0
+                                                                                #   0: Publishes whatever is given from the dxl_wb for all joints states (-pi)
+                                                                                #   1: Publishes NaN values for all joints
 
 groups:                                                                         # Optional; defines an unlimited number of joint groups in the robot; custom 'group' names can be used.
   arm: [waist, shoulder, elbow, wrist_angle, wrist_rotate]                      # Optional; groups can contain overlapping joints but those joints will retain the operating mode of the latter group.
