@@ -67,6 +67,10 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
     "set_motor_torque_status",
     std::bind(&SlateBase::motor_torque_status_callback, this, _1, _2, _3));
 
+  srv_enable_charing_ = create_service<SetBool>(
+    "enable_charging",
+    std::bind(&SlateBase::enable_charing_callback, this, _1, _2, _3));
+
   std::string dev;
   if (!base_driver::chassisInit(dev)) {
     RCLCPP_ERROR(get_logger(), "Failed to initialize base port.");
@@ -205,6 +209,23 @@ bool SlateBase::motor_torque_status_callback(
     RCLCPP_INFO(get_logger(), res->message.c_str());
   } else {
     res->message = "Failed to " + enabled_disabled + " motor torque.";
+    RCLCPP_ERROR(get_logger(), res->message.c_str());
+  }
+  return res->success;
+}
+
+bool SlateBase::enable_charing_callback(
+  const std::shared_ptr<rmw_request_id_t>/*request_header*/,
+  const std::shared_ptr<SetBool::Request> req,
+  const std::shared_ptr<SetBool::Response> res)
+{
+  res->success = base_driver::setCharge(req->data);
+  std::string enabled_disabled = req->data ? "enable" : "disable";
+  if (res->success) {
+    res->message = "Successfully " + enabled_disabled + "d charging.";
+    RCLCPP_INFO(get_logger(), res->message.c_str());
+  } else {
+    res->message = "Failed to " + enabled_disabled + " charging.";
     RCLCPP_ERROR(get_logger(), res->message.c_str());
   }
   return res->success;
