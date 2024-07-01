@@ -28,6 +28,11 @@ SlateBase::SlateBase(ros::NodeHandle * node_handle)
     &SlateBase::motor_torque_status_callback,
     this);
 
+  srv_enable_charing_ = node.advertiseService(
+    "enable_charging",
+    &SlateBase::enable_charing_callback,
+    this);
+
   std::string dev;
   if (!base_driver::chassisInit(dev)) {
     ROS_FATAL("Failed to initialize base.");
@@ -163,6 +168,22 @@ bool SlateBase::motor_torque_status_callback(
     ROS_INFO(res.message.c_str());
   } else {
     res.message = "Failed to " + enabled_disabled + " motor torque.";
+    ROS_ERROR(res.message.c_str());
+  }
+  return res.success;
+}
+
+bool SlateBase::enable_charing_callback(
+    std_srvs::SetBool::Request & req,
+    std_srvs::SetBool::Response & res)
+{
+  res.success = base_driver::setCharge(req.data);
+  std::string enabled_disabled = req.data ? "enable" : "disable";
+  if (res.success) {
+    res.message = "Successfully " + enabled_disabled + "d charging.";
+    ROS_INFO(res.message.c_str());
+  } else {
+    res.message = "Failed to " + enabled_disabled + " charging.";
     ROS_ERROR(res.message.c_str());
   }
   return res.success;
