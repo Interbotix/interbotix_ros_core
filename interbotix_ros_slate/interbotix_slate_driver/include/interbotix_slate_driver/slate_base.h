@@ -61,6 +61,9 @@ private:
   // Motor status service server
   ros::ServiceServer srv_motor_torque_status_;
 
+  // Set charge enable service server
+  ros::ServiceServer srv_enable_charing_;
+
   // Name of odom frame
   std::string odom_frame_name_;
 
@@ -144,6 +147,16 @@ private:
    * @return True if service request succeeded, false otherwise
    */
   bool motor_torque_status_callback(
+    std_srvs::SetBool::Request & req,
+    std_srvs::SetBool::Response & res);
+
+  /**
+   * @brief Process incoming enable charing service request
+   * @param req Service request containing desired desired charing enable status
+   * @param res[out] Service response containing a success indication and a message
+   * @return True if service succeeded, false otherwise
+   */
+  bool enable_charing_callback(
     std_srvs::SetBool::Request & req,
     std_srvs::SetBool::Response & res);
 
