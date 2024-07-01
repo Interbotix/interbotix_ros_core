@@ -65,6 +65,12 @@ struct MotorInfo                                                        // Struc
   int32_t value;                                                        // Value to write to the above register for the specified motor
 };
 
+enum ReadFailureBehavior                                                // The behavior on joint state read failures
+{
+  PUB_DXL_WB = 0,                                                       // Publishes whatever is given from the dxl_wb for all joints states (-pi)
+  PUB_NAN = 1                                                           // Publishes NaN values for all joint states
+};
+
 // Interbotix Core Class to build any type of Dynamixel-based robot
 class InterbotixRobotXS
 {
@@ -159,7 +165,7 @@ public:
   float robot_convert_linear_position_to_radian(std::string const& name, float const& linear_position);
 
   /// @brief Converts a specified angular position into the linear distance from one gripper finger to the center of the gripper servo horn
-  /// @param name - name of the gripper sevo to command
+  /// @param name - name of the gripper servo to command
   /// @param angular_position - desired gripper angular position [rad]
   /// @param <float> [out] - linear position [m] from a gripper finger to the center of the gripper servo horn
   float robot_convert_angular_position_to_linear(std::string const& name, float const& angular_position);
@@ -204,6 +210,9 @@ private:
   std::unordered_map<std::string, std::vector<std::string>> sister_map;         // Dictionary mapping the name of either servo in a 2in1 motor with the other one (henceforth known as 'sister')
   std::unordered_map<std::string, Gripper> gripper_map;                         // Dictionary mapping the name of a gripper motor with information about it (as defined in the Gripper struct)
   std::unordered_map<std::string, size_t> js_index_map;                         // Dictionary mapping the name of a joint with its position in the JointState 'name' list
+
+  // The behavior on joint state read failures
+  ReadFailureBehavior read_failure_behavior{ReadFailureBehavior::PUB_DXL_WB};
 
   /// @brief Loads a robot-specific 'motor_configs' yaml file and populates class variables with its contents
   /// @param <bool> [out] - True if the motor configs were successfully retrieved; False otherwise
