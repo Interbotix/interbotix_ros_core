@@ -32,6 +32,7 @@
 
 namespace slate_base
 {
+
 SlateBase::SlateBase(const rclcpp::NodeOptions & options)
 : rclcpp::Node("slate_base", "", options), cmd_vel_x_(0.0), cmd_vel_z_(0.0), cnt_(0), x_(0.0),
   y_(0.0), theta_(0.0), x_vel_(0.0), z_omega_(0.0), is_first_odom_(true), pose_{0},
@@ -88,29 +89,6 @@ void SlateBase::update()
   rclcpp::spin_some(get_node_base_interface());
   current_time_ = get_clock()->now();
 
-  cnt_++;
-  auto state = BatteryState();
-  if (cnt_ % 10 == 0) {
-    state.header.stamp = current_time_;
-    int percentage = 0;
-    if (
-      base_driver::getBatteryInfo(state.voltage, state.current, percentage) &&
-      base_driver::getChassisState(chassis_state_))
-    {
-      if (state.current < 0) {
-        int c = -state.current;
-        int right_c = (c % 1000);
-        int left_c = (c - right_c) / 1000;
-        right_motor_c_ = right_c * 0.1f;
-        left_motor_c_ = left_c * 0.1f;
-        state.current = -(right_motor_c_ + left_motor_c_);
-      }
-      state.percentage = percentage;
-      state.power_supply_status = chassis_state_;
-      pub_battery_state_->publish(state);
-    }
-  }
-
   // time out velocity commands
   if (current_time_ - cmd_vel_time_last_update_ > cmd_vel_timeout_) {
     cmd_vel_x_ = 0.0f;
@@ -120,9 +98,41 @@ void SlateBase::update()
   cmd_vel_x_ = std::min(max_vel_x_, std::max(-max_vel_x_, cmd_vel_x_));
   cmd_vel_z_ = std::min(max_vel_z_, std::max(-max_vel_z_, cmd_vel_z_));
 
-  base_driver::getChassisInfo(x_vel_, z_omega_);
-  base_driver::getChassisOdom(x_, y_, theta_);
-  base_driver::chassisControl(cmd_vel_x_, cmd_vel_z_);
+  uint32_t light = 0;
+  base_driver::ChassisData data = {
+    .cmd_vel_x=cmd_vel_x_,
+    .cmd_vel_y=0.0,
+    .cmd_vel_z=cmd_vel_z_,
+    .light_state=light,
+    .system_state=0};
+
+  if (!base_driver::updateChassisInfo(&data)) {
+    return;
+  }
+
+  uint32_t io = data.io;
+  sys_cmd_ = data.cmd;
+
+  cnt_++;
+  auto state = BatteryState();
+  if (cnt_ % 10 == 0) {
+    state.header.stamp = current_time_;
+    state.voltage = data.voltage;
+    state.current = data.current;
+    state.percentage = data.charge;
+  }
+
+  // base_driver::getChassisInfo(x_vel_, z_omega_);
+  // base_driver::getChassisOdom(x_, y_, theta_);
+  // base_driver::chassisControl(cmd_vel_x_, cmd_vel_z_);
+
+  x_vel_ = data.vel_x;
+  z_omega_ = data.vel_z;
+
+
+  x_ = data.odom_x;
+  y_ = data.odom_y;
+  theta_ = data.odom_z;
 
   if (is_first_odom_) {
     pose_[0] = x_;
@@ -202,7 +212,9 @@ bool SlateBase::motor_torque_status_callback(
   const std::shared_ptr<SetBool::Request> req,
   const std::shared_ptr<SetBool::Response> res)
 {
-  res->success = base_driver::motorCtrl(!req->data);
+  req->data ? sys_cmd_ |= 1 : sys_cmd_ &= ~(1);
+  res->success = base_driver::setSysCmd(sys_cmd_);
+
   std::string enabled_disabled = req->data ? "enable" : "disable";
   if (res->success) {
     res->message = "Successfully " + enabled_disabled + "d motor torque.";
@@ -219,7 +231,9 @@ bool SlateBase::enable_charing_callback(
   const std::shared_ptr<SetBool::Request> req,
   const std::shared_ptr<SetBool::Response> res)
 {
-  res->success = base_driver::setCharge(req->data);
+  req->data ? sys_cmd_ |= 2 : sys_cmd_ &= ~(2);
+  res->success = base_driver::setSysCmd(sys_cmd_);
+
   std::string enabled_disabled = req->data ? "enable" : "disable";
   if (res->success) {
     res->message = "Successfully " + enabled_disabled + "d charging.";

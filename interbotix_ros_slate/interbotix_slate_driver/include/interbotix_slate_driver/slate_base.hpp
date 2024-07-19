@@ -151,6 +151,8 @@ private:
   // Max angular velocity about the z-axis in radians per second
   float max_vel_z_ = 1.0;
 
+  uint32_t sys_cmd_ = 0;
+
   // If publish_tf_ is true, this is the broadcaster used to publish the odom->base_link TF
   tf2_ros::TransformBroadcaster tf_broadcaster_odom_;
 

@@ -29,31 +29,56 @@
 #ifndef INTERBOTIX_SLATE_DRIVER__SERIAL_DRIVER_HPP_
 #define INTERBOTIX_SLATE_DRIVER__SERIAL_DRIVER_HPP_
 
+#include <termio.h>
+
+#include <mutex>
 #include <string>
-#define ASSERT(expr, fail) (static_cast<bool>(expr) ? void(0) : (fail))
+
+typedef enum
+{
+  SYS_INIT = 0x00,
+  SYS_NORMAL,
+  SYS_REMOTE,
+  SYS_ESTOP,
+  SYS_CALIB,
+  SYS_TEST,
+  SYS_CHARGING,
+
+  SYS_ERR = 0x10,
+  SYS_ERR_ID,
+  SYS_ERR_COM,
+  SYS_ERR_ENC,
+  SYS_ERR_COLLISION,
+  SYS_ERR_LOW_VOLTAGE,
+  SYS_ERR_OVER_VOLTAGE,
+  SYS_ERR_OVER_CURRENT,
+  SYS_ERR_OVER_TEMP,
+
+  SYS_STATE_LEN,
+} SystemState;
 
 class SerialDriver
 {
-public:
-  bool init(const std::string & portname, std::string & dev, int baudRate);
-  void close();
+ public:
+  ~SerialDriver();
+  bool init(std::string& port, uint8_t id, int baud = B115200);
 
-  bool setEntry(int index, const float * data_address);
-  bool setEntry(int index, const int * data_address);
-  bool setEntry(int index, const char * data_address);
+  bool getVersion(char* version);
+  bool setText(const char* text);
 
-  bool getEntry(int index, float * data_address);
-  bool getEntry(int index, int * data_address);
-  bool getEntry(int index, char * data_address);
+  int readHoldingRegs(uint16_t addr, uint16_t cnt, uint16_t* data);
+  int writeHoldingRegs(uint16_t addr, uint16_t cnt, uint16_t* data);
+  int readWriteHoldingRegs(uint16_t raddr, uint16_t rcnt, uint16_t* rdata,
+                           uint16_t waddr, uint16_t wcnt, uint16_t* wdata);
 
-private:
-  bool handleTimeout(int);
+  int send(const void* data, int len, int timeout = 0);
+  int recv(uint8_t* data, int maxlen, int timeout = 0);
 
-  int fd_;
-  bool isOpened_;
-  int conn_timeout_cnt_;
-  int baud_rate_ = 0;
-  std::string portname_;
+ private:
+  void* m = nullptr;
+  int fd_ = -1;
+  fd_set read_set_;
+  std::mutex lock;
 };
 
 #endif  // INTERBOTIX_SLATE_DRIVER__SERIAL_DRIVER_HPP_
