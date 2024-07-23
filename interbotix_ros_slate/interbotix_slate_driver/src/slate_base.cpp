@@ -114,21 +114,18 @@ void SlateBase::update()
   sys_cmd_ = data.cmd;
 
   cnt_++;
-  auto state = BatteryState();
+  auto battery_state = BatteryState();
   if (cnt_ % 10 == 0) {
-    state.header.stamp = current_time_;
-    state.voltage = data.voltage;
-    state.current = data.current;
-    state.percentage = data.charge;
+    battery_state.header.stamp = current_time_;
+    battery_state.voltage = data.voltage;
+    battery_state.current = data.current;
+    battery_state.percentage = data.charge;
+    battery_state.power_supply_status = data.system_state;
+    pub_battery_state_->publish(battery_state);
   }
-
-  // base_driver::getChassisInfo(x_vel_, z_omega_);
-  // base_driver::getChassisOdom(x_, y_, theta_);
-  // base_driver::chassisControl(cmd_vel_x_, cmd_vel_z_);
 
   x_vel_ = data.vel_x;
   z_omega_ = data.vel_z;
-
 
   x_ = data.odom_x;
   y_ = data.odom_y;
@@ -162,6 +159,7 @@ void SlateBase::update()
   if (publish_tf_) {
     tf_broadcaster_odom_.sendTransform(odom_trans);
   }
+
   // publish odometry
   auto odom = Odometry();
   odom.header.stamp = current_time_;
@@ -172,7 +170,7 @@ void SlateBase::update()
   odom.pose.pose.position.y = odom_trans.transform.translation.y;
   odom.pose.pose.position.z = 0.0;
   odom.pose.pose.orientation = odom_quat;
-  odom.pose.covariance[0] = (chassis_state_ == SystemState::SYS_ESTOP) ? -1 : 1;
+  odom.pose.covariance[0] = (data.system_state == SystemState::SYS_ESTOP) ? -1 : 1;
 
   // set velocity
   odom.child_frame_id = base_frame_name_;
@@ -196,15 +194,11 @@ bool SlateBase::set_text_callback(
   const std::shared_ptr<SetString::Request> req,
   const std::shared_ptr<SetString::Response> res)
 {
-  res->success = base_driver::setText(req->data.c_str());
-  if (res->success) {
-    res->message = "Successfully set text to: '" + req->data + "'.";
-    RCLCPP_INFO(get_logger(), res->message.c_str());
-  } else {
-    res->message = "Failed to set text to: '" + req->data + "'.";
-    RCLCPP_ERROR(get_logger(), res->message.c_str());
-  }
-  return res->success;
+  base_driver::setText(req->data.c_str());
+  res->message = "Requested to set text to: '" + req->data + "'.";
+  res->success = true;
+  RCLCPP_INFO(get_logger(), res->message.c_str());
+  return true;
 }
 
 bool SlateBase::motor_torque_status_callback(
@@ -212,7 +206,7 @@ bool SlateBase::motor_torque_status_callback(
   const std::shared_ptr<SetBool::Request> req,
   const std::shared_ptr<SetBool::Response> res)
 {
-  req->data ? sys_cmd_ |= 1 : sys_cmd_ &= ~(1);
+  req->data ? sys_cmd_ &= ~(1): sys_cmd_ |= 1;
   res->success = base_driver::setSysCmd(sys_cmd_);
 
   std::string enabled_disabled = req->data ? "enable" : "disable";
