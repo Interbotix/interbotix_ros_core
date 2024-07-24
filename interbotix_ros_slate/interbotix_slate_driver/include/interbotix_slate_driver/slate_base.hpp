@@ -35,6 +35,7 @@
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "interbotix_slate_msgs/srv/set_light_state.hpp"
 #include "interbotix_slate_msgs/srv/set_string.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -55,6 +56,7 @@ namespace slate_base
 using geometry_msgs::msg::Quaternion;
 using geometry_msgs::msg::TransformStamped;
 using geometry_msgs::msg::Twist;
+using interbotix_slate_msgs::srv::SetLightState;
 using interbotix_slate_msgs::srv::SetString;
 using nav_msgs::msg::Odometry;
 using sensor_msgs::msg::BatteryState;
@@ -102,6 +104,9 @@ private:
 
   // Set charge enable service server
   rclcpp::Service<SetBool>::SharedPtr srv_enable_charing_;
+
+  // Set light state service server
+  rclcpp::Service<SetLightState>::SharedPtr srv_set_light_state_;
 
   // Name of odom frame
   std::string odom_frame_name_;
@@ -153,6 +158,9 @@ private:
 
   // Base command bytes containing data about charging and motor torque enabling
   uint32_t sys_cmd_ = 0;
+
+  // Base light state - see interbotix_slate_msgs/srv/SetLightState for details
+  uint32_t light_state_ = 0;
 
   // If publish_tf_ is true, this is the broadcaster used to publish the odom->base_link TF
   tf2_ros::TransformBroadcaster tf_broadcaster_odom_;
@@ -207,6 +215,18 @@ private:
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<SetBool::Request> req,
     const std::shared_ptr<SetBool::Response> res);
+
+  /**
+   * @brief Process incoming set light state service request
+   * @param request_header Incoming RMW request identifier
+   * @param req Service request containing desired light state
+   * @param res[out] Service response containing a success indication and a message
+   * @return true if service succeeded, false otherwise
+   */
+  bool set_light_state_callback(
+    const std::shared_ptr<rmw_request_id_t>/*request_header*/,
+    const std::shared_ptr<SetLightState::Request> req,
+    const std::shared_ptr<SetLightState::Response> res);
 
   /**
    * @brief Wrap angle

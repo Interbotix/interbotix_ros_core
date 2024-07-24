@@ -72,6 +72,10 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
     "enable_charging",
     std::bind(&SlateBase::enable_charing_callback, this, _1, _2, _3));
 
+  srv_set_light_state_ = create_service<SetLightState>(
+    "set_light_state",
+    std::bind(&SlateBase::set_light_state_callback, this, _1, _2, _3));
+
   std::string dev;
   if (!base_driver::chassisInit(dev)) {
     RCLCPP_ERROR(get_logger(), "Failed to initialize base port.");
@@ -99,12 +103,12 @@ void SlateBase::update()
   cmd_vel_x_ = std::min(max_vel_x_, std::max(-max_vel_x_, cmd_vel_x_));
   cmd_vel_z_ = std::min(max_vel_z_, std::max(-max_vel_z_, cmd_vel_z_));
 
-  // initialize and chassis data and use it to update the driver
+  // initialize chassis data and use it to update the driver
   base_driver::ChassisData data = {
     .cmd_vel_x=cmd_vel_x_,
     .cmd_vel_y=0.0,
     .cmd_vel_z=cmd_vel_z_,
-    .light_state=0,
+    .light_state=light_state_,
     .system_state=0};
 
   if (!base_driver::updateChassisInfo(&data)) {
@@ -240,6 +244,18 @@ bool SlateBase::enable_charing_callback(
     RCLCPP_ERROR(get_logger(), res->message.c_str());
   }
   return res->success;
+}
+
+bool SlateBase::set_light_state_callback(
+  const std::shared_ptr<rmw_request_id_t>/*request_header*/,
+  const std::shared_ptr<SetLightState::Request> req,
+  const std::shared_ptr<SetLightState::Response> res)
+{
+  res->message = "Set light state to: '" + std::to_string(req->light_state) + "'.";
+  light_state_ = req->light_state;
+  RCLCPP_INFO(get_logger(), res->message.c_str());
+  res->success = true;
+  return true;
 }
 
 float SlateBase::wrap_angle(float angle)
