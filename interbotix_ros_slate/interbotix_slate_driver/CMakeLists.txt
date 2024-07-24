@@ -46,7 +46,6 @@ else()
   message(FATAL_ERROR "Unknown System Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
 endif()
 
-message("Linking chassis_driver at '${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH}/libchassis_driver.so'")
 link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH})
 
 add_library(slate_base
