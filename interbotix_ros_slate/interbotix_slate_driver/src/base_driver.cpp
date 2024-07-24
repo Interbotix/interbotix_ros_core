@@ -48,10 +48,6 @@ bool check(int ret)
   {
     std::string dev;
     err_cnt = 0;
-    // if (driver.init(dev, 1, B115200))
-      // RCLCPP_INFO(get_logger(), "chassis init with port %s", dev.c_str());
-    // else
-      // RCLCPP_INFO_THROTTLE(get_logger(), 10, "lost chassis com port");
   }
   return !ret;
 }

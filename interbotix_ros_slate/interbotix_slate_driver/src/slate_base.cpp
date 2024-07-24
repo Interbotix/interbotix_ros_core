@@ -95,24 +95,26 @@ void SlateBase::update()
     cmd_vel_z_ = 0.0f;
   }
 
+  // limit velocity commands
   cmd_vel_x_ = std::min(max_vel_x_, std::max(-max_vel_x_, cmd_vel_x_));
   cmd_vel_z_ = std::min(max_vel_z_, std::max(-max_vel_z_, cmd_vel_z_));
 
-  uint32_t light = 0;
+  // initialize and chassis data and use it to update the driver
   base_driver::ChassisData data = {
     .cmd_vel_x=cmd_vel_x_,
     .cmd_vel_y=0.0,
     .cmd_vel_z=cmd_vel_z_,
-    .light_state=light,
+    .light_state=0,
     .system_state=0};
 
   if (!base_driver::updateChassisInfo(&data)) {
     return;
   }
 
-  uint32_t io = data.io;
+  // extract and update base system command bytes
   sys_cmd_ = data.cmd;
 
+  // update battery state every 10 iterations
   cnt_++;
   auto battery_state = BatteryState();
   if (cnt_ % 10 == 0) {
@@ -124,6 +126,7 @@ void SlateBase::update()
     pub_battery_state_->publish(battery_state);
   }
 
+  // update odometry values
   x_vel_ = data.vel_x;
   z_omega_ = data.vel_z;
 
@@ -194,10 +197,10 @@ bool SlateBase::set_text_callback(
   const std::shared_ptr<SetString::Request> req,
   const std::shared_ptr<SetString::Response> res)
 {
+  res->message = "Set base screen text to: '" + req->data + "'.";
   base_driver::setText(req->data.c_str());
-  res->message = "Requested to set text to: '" + req->data + "'.";
-  res->success = true;
   RCLCPP_INFO(get_logger(), res->message.c_str());
+  res->success = true;
   return true;
 }
 
