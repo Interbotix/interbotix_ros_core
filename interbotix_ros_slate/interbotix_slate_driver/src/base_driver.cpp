@@ -26,144 +26,49 @@
 // ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 // POSSIBILITY OF SUCH DAMAGE.
 
+#include "rclcpp/rclcpp.hpp"
+
 #include "interbotix_slate_driver/base_driver.hpp"
 #include "interbotix_slate_driver/serial_driver.hpp"
 
 namespace base_driver
 {
 
-SerialDriver * serial_driver = nullptr;
+#define MAX_TIMEOUT_CNT 50
 
-bool chassisInit(std::string & dev)
+uint32_t err_cnt = 0;
+SerialDriver driver;
+
+bool chassisInit(std::string &dev) { return driver.init(dev, 1, B115200); }
+
+bool check(int ret)
 {
-  serial_driver = new SerialDriver();
-  return serial_driver->init(PORT, dev, 115200);
+  err_cnt += (ret == 0 ? 0 : 1);
+  if (err_cnt > MAX_TIMEOUT_CNT)
+  {
+    std::string dev;
+    err_cnt = 0;
+  }
+  return !ret;
 }
 
-void exit()
+bool getVersion(char *data) { return driver.getVersion(data); }
+bool setText(const char *text) { return driver.setText(text); }
+
+bool updateChassisInfo(ChassisData *data)
 {
-  serial_driver->close();
-  ::exit(-1);
+  return check(driver.readWriteHoldingRegs(0x00, 26, (uint16_t *)&(data->system_state),
+                                           0x40, 8, (uint16_t *)data));
 }
 
-bool getBatteryInfo(float & vol, float & cur, int & percent)
+bool setSysCmd(uint32_t cmd)
 {
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_SYS_VOLTAGE, &vol) &&
-         serial_driver->getEntry(INDEX_SYS_CURRENT, &cur) &&
-         serial_driver->getEntry(INDEX_SYS_POWER_PERCENTAGE, &percent);
+  return check(driver.writeHoldingRegs(0x14, 2, (uint16_t *)&cmd));
 }
 
-bool getChassisCollision(int & collision)
+bool setIo(uint32_t io)
 {
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_SYS_COLLISION, &collision);
-}
-
-bool getChassisState(SystemState & state)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_SYS_STATE, (int *)&state);  // NOLINT
-}
-
-bool getVersion(char * text)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_SYS_VERSION, text);
-}
-
-bool getJoyState(int & state)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_STATE_JOY, (int *)&state);  // NOLINT
-}
-
-bool setText(const char * text)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_SYS_TEXT, text);
-}
-
-bool setCharge(int charge)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_SYS_CHARGE, &charge);
-}
-
-bool setAlarm(int alarm)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_SYS_ALARM, &alarm);
-}
-
-bool motorCtrl(int v)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_SYS_CMD, &v);
-}
-
-bool setIo(int io)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_STATE_IO, &io);
-}
-
-bool getIo(int & io_state)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_STATE_IO, &io_state);
-}
-
-bool setLight(int light)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_SYS_LIGHT, &light);
-}
-
-bool setStateLight(int light)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_STATE_LIGHT, &light);
-}
-
-/**
- * @brief Set the body velocity
- * @param aim_x_vel forward velocity [m/s]
- * @param aim_z_omega rotational velocity [rad/s]
- */
-bool chassisControl(float aim_x_vel, float aim_z_omega)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->setEntry(INDEX_AIM_CHASSIS_VEL, &aim_x_vel) &&
-         serial_driver->setEntry(INDEX_AIM_CHASSIS_POS_OR_OMEGA, &aim_z_omega);
-}
-
-/**
- * @brief Get body velocity
- * @param x_vel m/s
- * @param z_omega rad/s
- * @return true if driver was able to retrieve requested values, false otherwise
- */
-bool getChassisInfo(float & x_vel, float & z_omega)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_CHASSIS_VEL, &x_vel) &&
-         serial_driver->getEntry(INDEX_CHASSIS_POS_OR_OMEGA, &z_omega);
-}
-
-/**
- * @brief Get chassis odometry
- * @param odom_x odom along the x-axis
- * @param odom_y odom along the y-axis
- * @param odom_theta odom around the z-axis
- * @return true if driver was able to retrieve requested values, false otherwise
- */
-bool getChassisOdom(float & odom_x, float & odom_y, float & odom_theta)
-{
-  ASSERT(serial_driver != nullptr, exit());
-  return serial_driver->getEntry(INDEX_CHASSIS_ODOM_X, &odom_x) &&
-         serial_driver->getEntry(INDEX_CHASSIS_ODOM_Y, &odom_y) &&
-         serial_driver->getEntry(INDEX_CHASSIS_ODOM_THETA, &odom_theta);
+  return check(driver.writeHoldingRegs(0x16, 2, (uint16_t *)&io));
 }
 
 }  // namespace base_driver
