@@ -31,41 +31,40 @@
 
 #include <string>
 
-#include "interbotix_slate_driver/od_index.hpp"
+#include "interbotix_slate_driver/serial_driver.hpp"
+
 
 namespace base_driver
 {
 
-bool chassisInit(std::string & dev);
-bool chassisControl(float aim_x_vel, float aim_z_omega);
-bool getChassisInfo(float & x_vel, float & z_omega);
-bool getChassisOdom(float & odom_x, float & odom_y, float & odom_theta);
+typedef struct
+{
+  float cmd_vel_x;
+  float cmd_vel_y;
+  float cmd_vel_z;
+  uint32_t light_state;
 
-bool getBatteryInfo(float & vol, float & cur, int & percent);
-bool getChassisState(SystemState & state);
-bool getChassisCollision(int & collision);
-bool getVersion(char * text);
-bool getJoyState(int & state);
+  uint32_t system_state;
+  uint32_t charge;
+  float voltage;
+  float current;
+  float vel_x;
+  float vel_y;
+  float vel_z;
+  float odom_x;
+  float odom_y;
+  float odom_z;
+  uint32_t cmd;
+  uint32_t io;
+  uint32_t err;
+} ChassisData;
 
-// Limited to 100 characters
-bool setText(const char * text);
-
-// 0 / 1
-bool setCharge(int charge);
-
-// 0 / 1
-bool setAlarm(int alarm);
-
-bool motorCtrl(int v);
-
-bool setIo(int io);
-
-bool getIo(int & io_state);
-
-// 0 ~ 100
-bool setLight(int light);
-
-bool setStateLight(int light);
+bool chassisInit(std::string &dev);
+bool getVersion(char *data);
+bool setText(const char *text);
+bool updateChassisInfo(ChassisData *data);
+bool setSysCmd(uint32_t cmd);
+bool setIo(uint32_t io);
 
 }  // namespace base_driver
 

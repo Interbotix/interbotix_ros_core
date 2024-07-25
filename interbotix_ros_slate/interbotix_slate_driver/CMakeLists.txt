@@ -38,7 +38,15 @@ set(ROS_DEPENDENCIES
   tf2_ros
 )
 
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib)
+if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
+  set(ARCH "x86_64")
+elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
+  set(ARCH "aarch64")
+else()
+  message(FATAL_ERROR "Unknown System Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
+endif()
+
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH})
 
 add_library(slate_base
   src/slate_base.cpp
@@ -75,7 +83,7 @@ install(
 
 install(
   FILES
-    lib/lib${serial_driver}.so
+    ${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH}/lib${serial_driver}.so
   DESTINATION
     lib
 )
