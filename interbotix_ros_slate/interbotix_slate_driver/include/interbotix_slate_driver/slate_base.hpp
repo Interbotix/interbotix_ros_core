@@ -103,7 +103,7 @@ private:
   rclcpp::Service<SetBool>::SharedPtr srv_motor_torque_status_;
 
   // Set charge enable service server
-  rclcpp::Service<SetBool>::SharedPtr srv_enable_charing_;
+  rclcpp::Service<SetBool>::SharedPtr srv_enable_charging_;
 
   // Set light state service server
   rclcpp::Service<SetLightState>::SharedPtr srv_set_light_state_;
@@ -205,13 +205,13 @@ private:
     const std::shared_ptr<SetBool::Response> res);
 
   /**
-   * @brief Process incoming enable charing service request
+   * @brief Process incoming enable charging service request
    * @param request_header Incoming RMW request identifier
-   * @param req Service request containing desired charing enable status
+   * @param req Service request containing desired charging enable status
    * @param res[out] Service response containing a success indication and a message
    * @return true if service succeeded, false otherwise
    */
-  bool enable_charing_callback(
+  bool enable_charging_callback(
     const std::shared_ptr<rmw_request_id_t> request_header,
     const std::shared_ptr<SetBool::Request> req,
     const std::shared_ptr<SetBool::Response> res);
