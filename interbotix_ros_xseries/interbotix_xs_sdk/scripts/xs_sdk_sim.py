@@ -774,7 +774,7 @@ class InterbotixRobotXS(Node):
                 mode = self.motor_map[joint]['mode']
 
                 if 'position' in mode:
-                    if type(self.commands[joint]) == list:
+                    if isinstance(self.commands[joint], list):
                         value = self.commands[joint].pop()
                         if len(self.commands[joint]) == 0:
                             del self.commands[joint]
