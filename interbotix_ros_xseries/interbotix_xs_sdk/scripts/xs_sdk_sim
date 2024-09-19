@@ -6,6 +6,7 @@ import yaml
 import rospy
 import threading
 import numpy as np
+from copy import deepcopy
 from interbotix_xs_msgs.msg import *
 from interbotix_xs_msgs.srv import *
 from urdf_parser_py.urdf import URDF
@@ -17,10 +18,12 @@ class InterbotixRobotXS(object):
     def __init__(self):
         self.rd = None                          # Holds the URDF loaded from the ROS parameter server
         self.timer_hz = 20                      # Rate [Hz] at which the ROS Timer (in charge of publishing joint states) should run
+        self.dt = 1.0 / float(self.timer_hz)    # Time step [seconds], duration that the ROS Timer (in charge of publishing joint states) should run
         self.js_topic = None                    # Joint States topic
         self.move_thresh = 300                  # Threshold [in milliseconds] above which desired goal positions should be split up into waypoints and simulated
         self.execute_joint_traj = False         # Boolean that is True if a trajectory is currently being executed; False otherwise
         self.joint_states = JointState()        # Current state of all joints
+        self.prev_joint_states = None           # Previous state of all joints (used to estimate velocity)
         self.cmd_mutex = threading.Lock()       # Mutex to prevent reading/writing to self.commands from different threads
         self.commands = {}                      # Holds the desired commands for each joint
         self.sleep_map = {}                     # Maps a joint name with its sleep position [rad]
@@ -43,7 +46,7 @@ class InterbotixRobotXS(object):
         rospy.Subscriber('commands/joint_single', JointSingleCommand, self.robot_sub_command_single)
         rospy.Subscriber('commands/joint_trajectory', JointTrajectoryCommand, self.robot_sub_command_traj)
         self.pub_joint_states = rospy.Publisher(self.js_topic, JointState, queue_size=1)
-        rospy.Timer(rospy.Duration(1.0/self.timer_hz), self.robot_update_joint_states)
+        rospy.Timer(rospy.Duration(self.dt), self.robot_update_joint_states)
 
     ### @brief Loads the URDF to get joint limit information
     def get_urdf_info(self):
@@ -472,7 +475,20 @@ class InterbotixRobotXS(object):
                             self.joint_states.position[self.js_index_map[gpr["right_finger"]]] = -lin_pos
 
             self.joint_states.header.stamp = rospy.Time.now()
+            self.joint_states.velocity = [0.0]*len(self.joint_states.position)
+            if self.prev_joint_states is not None:
+
+                for curr_idx, name in enumerate(self.joint_states.name):
+                    pc = self.joint_states.position[curr_idx] # current position
+                    try:
+                        prev_idx = self.prev_joint_states.name.index(name)
+                        pp = self.prev_joint_states.position[prev_idx] # previous position
+                    except:
+                        pp = deepcopy(pc)
+                    self.joint_states.velocity[curr_idx] = (pc - pp) / self.dt
+
             self.pub_joint_states.publish(self.joint_states)
+            self.prev_joint_states = deepcopy(self.joint_states)
 
 def main():
     rospy.init_node('xs_sdk_sim')
