@@ -30,8 +30,8 @@ jobs:
       - name: Install Dependencies
         run: |
           export DEBIAN_FRONTEND=noninteractive \
-          && apt-get update \
-          && apt-get install -yqq --no-install-recommends \
+          && sudo apt-get update \
+          && sudo apt-get install -yqq --no-install-recommends \
             libusb-1.0-0-dev
       - name: Prepare Workspace
         run: |
