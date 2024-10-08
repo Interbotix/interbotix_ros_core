@@ -23,7 +23,8 @@ jobs:
           - {ROS_DISTRO: humble, ROS_REPO: main}
           - {ROS_DISTRO: humble, ROS_REPO: testing}
     runs-on: ubuntu-latest
-    container: ubuntu:jammy
+    container:
+      image: ubuntu:jammy
     steps:
       - uses: actions/checkout@v4
         with:
