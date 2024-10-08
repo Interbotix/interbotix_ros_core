@@ -33,19 +33,5 @@ jobs:
             interbotix_ros_common_drivers/COLCON_IGNORE \
             interbotix_ros_slate/COLCON_IGNORE \
             interbotix_ros_xseries/COLCON_IGNORE
-      - uses: ros-tooling/setup-ros@v0.7
-        with:
-          use-ros2-testing: true
-          required-ros-distributions: humble
-      - uses: ros-tooling/action-ros-ci@v0.3
-        with:
-          target-ros2-distro: humble
-          package-name:
-            interbotix_footswitch_driver
-            interbotix_footswitch_msgs
-            interbotix_ros_slate
-            interbotix_ros_xseries
-            interbotix_slate_driver
-            interbotix_slate_msgs
-            interbotix_xs_msgs
-            interbotix_xs_sdk
+      - uses: ros-industrial/industrial_ci@master
+        env: ${{matrix.env}}
