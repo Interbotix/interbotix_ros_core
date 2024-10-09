@@ -6,6 +6,3 @@
 	path = interbotix_ros_xseries/interbotix_xs_driver
 	url = https://github.com/Interbotix/interbotix_xs_driver.git
 	branch = v0.3.3
-[submodule "interbotix_ros_common_drivers/interbotix_ros_footswitch/interbotix_footswitch_driver/dependencies/hidapi"]
-	path = interbotix_ros_common_drivers/interbotix_ros_footswitch/interbotix_footswitch_driver/dependencies/hidapi
-	url = https://github.com/libusb/hidapi.git
