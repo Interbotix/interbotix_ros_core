@@ -7,6 +7,11 @@ find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
 
 find_package(PkgConfig REQUIRED)
+
+set(HIDAPI_WITH_LIBUSB FALSE)
+set(BUILD_SHARED_LIBS FALSE)
+set(HIDAPI_PRINT_VERSION ON)
+set(HIDAPI_INSTALL_TARGETS ON)
 add_subdirectory(dependencies/hidapi)
 
 include_directories(include)
