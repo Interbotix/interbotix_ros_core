@@ -15,6 +15,7 @@
   <buildtool_depend>ament_cmake</buildtool_depend>
 
   <depend>interbotix_footswitch_msgs</depend>
+  <depend>libusb-1.0</depend>
   <depend>rclcpp_components</depend>
   <depend>rclcpp</depend>
 
