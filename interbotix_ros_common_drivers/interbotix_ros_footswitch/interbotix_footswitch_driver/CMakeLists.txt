@@ -1,20 +1,20 @@
 cmake_minimum_required(VERSION 3.12.0)
 project(interbotix_footswitch_driver)
 
+list(INSERT CMAKE_MODULE_PATH 0 "${PROJECT_SOURCE_DIR}/cmake")
+
 find_package(ament_cmake REQUIRED)
 find_package(interbotix_footswitch_msgs REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
+find_package(HIDAPI REQUIRED)
+find_package(LIBUSB 1 REQUIRED)
 
-find_package(PkgConfig REQUIRED)
-
-set(HIDAPI_WITH_LIBUSB FALSE)
-set(BUILD_SHARED_LIBS FALSE)
-set(HIDAPI_PRINT_VERSION ON)
-set(HIDAPI_INSTALL_TARGETS ON)
-add_subdirectory(dependencies/hidapi)
-
-include_directories(include)
+include_directories(
+  include
+  ${HIDAPI_INCLUDE_DIRS}
+  ${LibUSB_INCLUDE_DIRS}
+)
 
 set(ROS_DEPENDENCIES
   interbotix_footswitch_msgs
@@ -27,7 +27,11 @@ add_library(footswitch_driver
 )
 
 ament_target_dependencies(footswitch_driver ${ROS_DEPENDENCIES})
-target_link_libraries(footswitch_driver hidapi::hidraw)
+
+target_link_libraries(footswitch_driver
+  ${LibUSB_LIBRARIES}
+  ${HIDAPI_LIBRARIES}
+)
 
 add_executable(footswitch_driver_node
   src/footswitch_driver_node.cpp
