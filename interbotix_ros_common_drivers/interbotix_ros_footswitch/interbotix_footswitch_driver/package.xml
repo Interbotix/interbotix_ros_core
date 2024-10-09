@@ -16,9 +16,9 @@
 
   <depend>interbotix_footswitch_msgs</depend>
   <depend>libusb-1.0-dev</depend>
-  <depend>libusb-1.0</depend>
+  <!-- <depend>libusb-1.0</depend>
   <depend>libusb-dev</depend>
-  <depend>libusb</depend>
+  <depend>libusb</depend> -->
   <depend>rclcpp_components</depend>
   <depend>rclcpp</depend>
 
