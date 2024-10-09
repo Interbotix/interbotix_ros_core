@@ -1,153 +1,100 @@
-# - Find libusb for portable USB support
-# This module will find libusb as published by
-#  http://libusb.sf.net and
-#  http://libusb-win32.sf.net
+# https://github.com/ryanbinns/ttwatch/blob/f449ce60818454415a4a667b39654f0e5446a6b3/cmake_modules/FindLibUSB.cmake#L62
+
+# - Try to find libusb-1.0
+# Once done this will define
 #
-# It will use PkgConfig if present and supported, else search
-# it on its own. If the LibUSB_ROOT_DIR environment variable
-# is defined, it will be used as base path.
-# The following standard variables get defined:
-#  LibUSB_FOUND:        true if LibUSB was found
-#  LibUSB_HEADER_FILE:  the location of the C header file
-#  LibUSB_INCLUDE_DIRS: the directory that contains the include file
-#  LibUSB_LIBRARIES:    the library
-# source: https://github.com/IntelRealSense/librealsense
+#  LIBUSB_1_FOUND - system has libusb
+#  LIBUSB_1_INCLUDE_DIRS - the libusb include directory
+#  LIBUSB_1_LIBRARIES - Link these to use libusb
+#  LIBUSB_1_DEFINITIONS - Compiler switches required for using libusb
+#
+#  Adapted from cmake-modules Google Code project
+#
+#  Copyright (c) 2006 Andreas Schneider <mail@cynapses.org>
+#
+#  (Changes for libusb) Copyright (c) 2008 Kyle Machulis <kyle@nonpolynomial.com>
+#
+# Redistribution and use is allowed according to the terms of the New BSD license.
+#
+# CMake-Modules Project New BSD License
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the
+#   documentation and/or other materials provided with the distribution.
+#
+# * Neither the name of the CMake-Modules Project nor the names of its
+#   contributors may be used to endorse or promote products derived from this
+#   software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
+# ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
+# WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+# DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR
+# ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
+# (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+#  LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON
+# ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
+# (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
+# SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+#
 
-cmake_policy(SET CMP0045 NEW)
-cmake_policy(SET CMP0053 NEW)
-cmake_policy(SET CMP0054 NEW)
 
-include ( CheckLibraryExists )
-include ( CheckIncludeFile )
+if (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
+  # in cache already
+  set(LIBUSB_FOUND TRUE)
+else (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)
+  find_path(LIBUSB_1_INCLUDE_DIR
+    NAMES
+	libusb.h
+    PATHS
+      /usr/include
+      /usr/local/include
+      /opt/local/include
+      /sw/include
+	PATH_SUFFIXES
+	  libusb-1.0
+  )
 
-find_package ( PkgConfig )
-if ( PKG_CONFIG_FOUND )
-    pkg_check_modules ( PKGCONFIG_LIBUSB libusb-1.0 )
-    if ( NOT PKGCONFIG_LIBUSB_FOUND )
-        pkg_check_modules ( PKGCONFIG_LIBUSB libusb )
-    endif ( NOT PKGCONFIG_LIBUSB_FOUND )
-endif ( PKG_CONFIG_FOUND )
+  find_library(LIBUSB_1_LIBRARY
+    NAMES
+      usb-1.0 usb
+    PATHS
+      /usr/lib
+      /usr/local/lib
+      /opt/local/lib
+      /sw/lib
+  )
 
-if ( PKGCONFIG_LIBUSB_FOUND )
-    set ( LibUSB_INCLUDE_DIRS ${PKGCONFIG_LIBUSB_INCLUDE_DIRS} )
-    foreach ( i ${PKGCONFIG_LIBUSB_LIBRARIES} )
-        string ( REGEX MATCH "[^-]*" ibase "${i}" )
-        find_library ( ${ibase}_LIBRARY
-                NAMES ${i}
-                PATHS ${PKGCONFIG_LIBUSB_LIBRARY_DIRS}
-                )
-        if ( ${ibase}_LIBRARY )
-            list ( APPEND LibUSB_LIBRARIES ${${ibase}_LIBRARY} )
-        endif ( ${ibase}_LIBRARY )
-        mark_as_advanced ( ${ibase}_LIBRARY )
-    endforeach ( i )
+  set(LIBUSB_1_INCLUDE_DIRS
+    ${LIBUSB_1_INCLUDE_DIR}
+  )
+  set(LIBUSB_1_LIBRARIES
+    ${LIBUSB_1_LIBRARY}
+)
 
-else ( PKGCONFIG_LIBUSB_FOUND )
-    find_file ( LibUSB_HEADER_FILE
-            NAMES
-            libusb.h usb.h
-            PATHS
-            $ENV{ProgramFiles}/LibUSB-Win32
-            $ENV{LibUSB_ROOT_DIR}
-            PATH_SUFFIXES
-            include
-            libusb-1.0
-            include/libusb-1.0
-            )
-    mark_as_advanced ( LibUSB_HEADER_FILE )
-    get_filename_component ( LibUSB_INCLUDE_DIRS "${LibUSB_HEADER_FILE}" PATH )
+  if (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
+     set(LIBUSB_1_FOUND TRUE)
+  endif (LIBUSB_1_INCLUDE_DIRS AND LIBUSB_1_LIBRARIES)
 
-    if ( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
-        # LibUSB-Win32 binary distribution contains several libs.
-        # Use the lib that got compiled with the same compiler.
-        if ( MSVC )
-            if ( WIN32 )
-                set ( LibUSB_LIBRARY_PATH_SUFFIX lib/msvc )
-            else ( WIN32 )
-                set ( LibUSB_LIBRARY_PATH_SUFFIX lib/msvc_x64 )
-            endif ( WIN32 )
-        elseif ( BORLAND )
-            set ( LibUSB_LIBRARY_PATH_SUFFIX lib/bcc )
-        elseif ( CMAKE_COMPILER_IS_GNUCC )
-            set ( LibUSB_LIBRARY_PATH_SUFFIX lib/gcc )
-        endif ( MSVC )
-    endif ( ${CMAKE_SYSTEM_NAME} STREQUAL "Windows" )
+  if (LIBUSB_1_FOUND)
+    if (NOT libusb_1_FIND_QUIETLY)
+      message(STATUS "Found libusb-1.0:")
+	  message(STATUS " - Includes: ${LIBUSB_1_INCLUDE_DIRS}")
+	  message(STATUS " - Libraries: ${LIBUSB_1_LIBRARIES}")
+    endif (NOT libusb_1_FIND_QUIETLY)
+  else (LIBUSB_1_FOUND)
+    if (libusb_1_FIND_REQUIRED)
+      message(FATAL_ERROR "Could not find libusb")
+    endif (libusb_1_FIND_REQUIRED)
+  endif (LIBUSB_1_FOUND)
 
-    find_library ( usb_LIBRARY
-            NAMES
-            usb-1.0 libusb usb
-            PATHS
-            $ENV{ProgramFiles}/LibUSB-Win32
-            $ENV{LibUSB_ROOT_DIR}
-            PATH_SUFFIXES
-            ${LibUSB_LIBRARY_PATH_SUFFIX}
-            )
-    mark_as_advanced ( usb_LIBRARY )
-    if ( usb_LIBRARY )
-        set ( LibUSB_LIBRARIES ${usb_LIBRARY} )
-    endif ( usb_LIBRARY )
+  # show the LIBUSB_1_INCLUDE_DIRS and LIBUSB_1_LIBRARIES variables only in the advanced view
+  mark_as_advanced(LIBUSB_1_INCLUDE_DIRS LIBUSB_1_LIBRARIES)
 
-endif ( PKGCONFIG_LIBUSB_FOUND )
-
-if ( LibUSB_INCLUDE_DIRS AND LibUSB_LIBRARIES )
-    set ( LibUSB_FOUND true )
-endif ( LibUSB_INCLUDE_DIRS AND LibUSB_LIBRARIES )
-
-if ( LibUSB_FOUND )
-    set ( CMAKE_REQUIRED_INCLUDES "${LibUSB_INCLUDE_DIRS}" )
-    check_include_file ( "${LibUSB_HEADER_FILE}" LibUSB_FOUND )
-endif ( LibUSB_FOUND )
-
-if ( LibUSB_FOUND )
-    check_library_exists ( "${LibUSB_LIBRARIES}" usb_open "" LibUSB_FOUND )
-    check_library_exists ( "${LibUSB_LIBRARIES}" libusb_get_device_list "" LibUSB_VERSION_1.0 )
-    check_library_exists ( "${LibUSB_LIBRARIES}" libusb_get_port_numbers "" LibUSB_VERSION_1.0.16 )
-
-    if((STATIC AND UNIX AND NOT APPLE) OR (DEPENDS AND CMAKE_SYSTEM_NAME STREQUAL "Linux"))
-        find_library(LIBUDEV_LIBRARY udev)
-        if(LIBUDEV_LIBRARY)
-            set(LibUSB_LIBRARIES "${LibUSB_LIBRARIES};${LIBUDEV_LIBRARY}")
-        else()
-            message(WARNING "libudev library not found, binaries may fail to link.")
-        endif()
-    endif()
-
-    # Library 1.0.16+ compilation test.
-    # The check_library_exists does not work well on Apple with shared libs.
-    if (APPLE OR LibUSB_VERSION_1.0.16 OR STATIC)
-        if (APPLE)
-            if(DEPENDS)
-                list(APPEND TEST_COMPILE_EXTRA_LIBRARIES "-framework Foundation -framework IOKit")
-            else()
-                find_library(COREFOUNDATION CoreFoundation)
-                find_library(IOKIT IOKit)
-                list(APPEND TEST_COMPILE_EXTRA_LIBRARIES ${IOKIT})
-                list(APPEND TEST_COMPILE_EXTRA_LIBRARIES ${COREFOUNDATION})
-            endif()
-        endif()
-        if (WIN32)
-            list(APPEND TEST_COMPILE_EXTRA_LIBRARIES setupapi)
-        endif()
-        list(APPEND TEST_COMPILE_EXTRA_LIBRARIES ${LibUSB_LIBRARIES})
-
-        try_compile(LibUSB_COMPILE_TEST_PASSED
-                ${CMAKE_BINARY_DIR}
-                "${PROJECT_SOURCE_DIR}/cmake/test-libusb-version.cpp"
-                CMAKE_FLAGS
-                    "-DINCLUDE_DIRECTORIES=${LibUSB_INCLUDE_DIRS}"
-                    "-DLINK_DIRECTORIES=${LibUSB_LIBRARIES}"
-                LINK_LIBRARIES ${TEST_COMPILE_EXTRA_LIBRARIES}
-                OUTPUT_VARIABLE OUTPUT)
-        unset(TEST_COMPILE_EXTRA_LIBRARIES)
-        message(STATUS "LibUSB Compilation test: ${LibUSB_COMPILE_TEST_PASSED}")
-    endif()
-endif ( LibUSB_FOUND )
-
-if ( NOT LibUSB_FOUND )
-    if ( NOT LibUSB_FIND_QUIETLY )
-        message ( STATUS "LibUSB not found, try setting LibUSB_ROOT_DIR environment variable." )
-    endif ( NOT LibUSB_FIND_QUIETLY )
-    if ( LibUSB_FIND_REQUIRED )
-        message ( FATAL_ERROR "" )
-    endif ( LibUSB_FIND_REQUIRED )
-endif ( NOT LibUSB_FOUND )
+endif (LIBUSB_1_LIBRARIES AND LIBUSB_1_INCLUDE_DIRS)

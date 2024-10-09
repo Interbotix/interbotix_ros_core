@@ -29,8 +29,8 @@ add_library(footswitch_driver
 ament_target_dependencies(footswitch_driver ${ROS_DEPENDENCIES})
 
 target_link_libraries(footswitch_driver
-  ${LibUSB_LIBRARIES}
   ${HIDAPI_LIBRARIES}
+  ${LibUSB_LIBRARIES}
 )
 
 add_executable(footswitch_driver_node

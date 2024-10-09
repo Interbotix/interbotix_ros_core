@@ -1,3 +1,5 @@
+# https://github.com/rpavlik/cmake-modules/blob/1b450496c5d11fdcad8b000843d0c516e1eaa59f/FindHIDAPI.cmake
+
 #.rst:
 # FindHIDAPI
 # ----------
