@@ -1,0 +1,37 @@
+name: build-jazzy
+
+on:
+  push:
+    branches:
+      - jazzy
+  pull_request:
+    branches:
+      - jazzy
+  workflow_dispatch:
+
+# Limit jobs run by PRs or branches by cancelling ongoing jobs
+# https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-concurrency-and-the-default-behavior
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  jazzy:
+    strategy:
+      matrix:
+        env:
+          - {ROS_DISTRO: jazzy, ROS_REPO: main}
+          - {ROS_DISTRO: jazzy, ROS_REPO: testing}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Prepare Workspace
+        run: |
+          rm \
+            interbotix_ros_common_drivers/COLCON_IGNORE \
+            interbotix_ros_slate/COLCON_IGNORE \
+            interbotix_ros_xseries/COLCON_IGNORE
+      - uses: ros-industrial/industrial_ci@master
+        env: ${{matrix.env}}
