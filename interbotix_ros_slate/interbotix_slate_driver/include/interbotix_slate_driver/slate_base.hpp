@@ -88,16 +88,13 @@ private:
   // Whether or not we have received our first odometry update
   bool is_first_odom_;
 
-  // Flag to keep track of base initialization
-  bool base_initialized_ = false;
-
   // Base light state - see interbotix_slate_msgs/srv/SetLightState for details
   uint32_t light_state_ = 0;
 
   // Base command bytes containing data about charging and motor torque enabling
   uint32_t sys_cmd_ = 0;
 
-  // Stored data of the SLATE base - see base_driver.hpp for details
+  // Stored data of the SLATE base
   base_driver::ChassisData data_;
 
   // Name of odom frame
