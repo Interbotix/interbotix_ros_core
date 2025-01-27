@@ -1,4 +1,4 @@
-// Copyright 2024 Trossen Robotics
+// Copyright 2025 Trossen Robotics
 //
 // Redistribution and use in source and binary forms, with or without
 // modification, are permitted provided that the following conditions are met:
@@ -31,6 +31,7 @@
 
 #include <memory>
 #include <string>
+#include <vector>
 
 #include "geometry_msgs/msg/quaternion.hpp"
 #include "geometry_msgs/msg/transform_stamped.hpp"
@@ -44,15 +45,10 @@
 #include "tf2_geometry_msgs/tf2_geometry_msgs.hpp"
 #include "tf2_ros/transform_broadcaster.h"
 
-#include "interbotix_slate_driver/base_driver.hpp"
-#include "interbotix_slate_driver/serial_driver.hpp"
+#include "trossen_slate/trossen_slate.hpp"
 
 namespace slate_base
 {
-
-#define CMD_TIME_OUT 300  // ms
-#define PORT "chassis"
-
 using geometry_msgs::msg::Quaternion;
 using geometry_msgs::msg::TransformStamped;
 using geometry_msgs::msg::Twist;
@@ -62,7 +58,9 @@ using nav_msgs::msg::Odometry;
 using sensor_msgs::msg::BatteryState;
 using std_srvs::srv::SetBool;
 
-class SlateBase : public rclcpp::Node
+class SlateBase
+  : public trossen_slate::TrossenSlate,
+  public rclcpp::Node
 {
 public:
   /**
@@ -71,21 +69,45 @@ public:
    */
   explicit SlateBase(const rclcpp::NodeOptions & options = rclcpp::NodeOptions());
 
-  /// @brief Destructor for the SlateBase
+  /// @brief Destructor for SlateBase
   ~SlateBase() {}
 
   /// @brief Process velocity commands and update robot state
   void update();
 
 private:
-  // Linear velocity command
-  float cmd_vel_x_;
+  // Update counter used to only update some values less frequently
+  int cnt_;
 
-  // Angular velocity command
-  float cmd_vel_z_;
+  // Array containing x and y translation in meters and rotation in radians
+  float pose_[3];
 
-  // Time last velocity command was received
-  rclcpp::Time cmd_vel_time_last_update_;
+  // Whether or not to publish TF from base_link->odom
+  bool publish_tf_;
+
+  // Whether or not we have received our first odometry update
+  bool is_first_odom_;
+
+  // Flag to keep track of base initialization
+  bool base_initialized_ = false;
+
+  // Base light state - see interbotix_slate_msgs/srv/SetLightState for details
+  uint32_t light_state_ = 0;
+
+  // Base command bytes containing data about charging and motor torque enabling
+  uint32_t sys_cmd_ = 0;
+
+  // Stored data of the SLATE base - see base_driver.hpp for details
+  base_driver::ChassisData data_;
+
+  // Name of odom frame
+  std::string odom_frame_name_;
+
+  // Name of base frame
+  std::string base_frame_name_;
+
+  // Time of the current update
+  rclcpp::Time current_time_;
 
   // Odometry publisher
   rclcpp::Publisher<Odometry>::SharedPtr pub_odom_;
@@ -108,71 +130,8 @@ private:
   // Set light state service server
   rclcpp::Service<SetLightState>::SharedPtr srv_set_light_state_;
 
-  // Name of odom frame
-  std::string odom_frame_name_;
-
-  // Name of base frame
-  std::string base_frame_name_;
-
-  // Update counter used to only update some values less frequently
-  int cnt_;
-
-  // Odometry translation in the x-direction in meters
-  float x_;
-
-  // Odometry translation in the y-direction in meters
-  float y_;
-
-  // Odometry rotation about the z-axis in radians
-  float theta_;
-
-  // Odometry forward velocity in meters per second
-  float x_vel_;
-
-  // Odometry rotational velocity about the z-axis in radians per second
-  float z_omega_;
-
-  // Whether or not we have received our first odometry update
-  bool is_first_odom_;
-
-  // Array containing x and y translation in meters and rotation in radians
-  float pose_[3];
-
-  // Current of the right motor in Amps
-  float right_motor_c_;
-
-  // Current of the left motor in Amps
-  float left_motor_c_;
-
-  // The system state of the base
-  SystemState chassis_state_;
-
-  // Whether or not to publish TF from base_link->odom
-  bool publish_tf_;
-
-  // Max linear velocity in the x-direction in meters per second
-  float max_vel_x_ = 1.0;
-
-  // Max angular velocity about the z-axis in radians per second
-  float max_vel_z_ = 1.0;
-
-  // Base command bytes containing data about charging and motor torque enabling
-  uint32_t sys_cmd_ = 0;
-
-  // Base light state - see interbotix_slate_msgs/srv/SetLightState for details
-  uint32_t light_state_ = 0;
-
   // If publish_tf_ is true, this is the broadcaster used to publish the odom->base_link TF
   tf2_ros::TransformBroadcaster tf_broadcaster_odom_;
-
-  // Time of the current update
-  rclcpp::Time current_time_;
-
-  // Time of the last update
-  rclcpp::Time last_time_;
-
-  // Timeout for base velocity
-  rclcpp::Duration cmd_vel_timeout_;
 
   /**
    * @brief Process incoming Twist command message
@@ -236,6 +195,6 @@ private:
   float wrap_angle(float angle);
 };
 
-}  // namespace slate_base
+} // namespace slate_base
 
-#endif  // INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
+#endif // INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
