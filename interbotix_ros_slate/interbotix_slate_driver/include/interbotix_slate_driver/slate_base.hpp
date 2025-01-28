@@ -76,7 +76,7 @@ public:
   void update();
 
 private:
-  // Update counter used to only update some values less frequently
+  // Update counter used to update the battery status less frequently
   int cnt_;
 
   // Array containing x and y translation in meters and rotation in radians
@@ -94,7 +94,7 @@ private:
   // Base command bytes containing data about charging and motor torque enabling
   uint32_t sys_cmd_ = 0;
 
-  // Stored data of the SLATE base
+  // Stored data of the base
   base_driver::ChassisData data_;
 
   // Name of odom frame
@@ -127,8 +127,17 @@ private:
   // Set light state service server
   rclcpp::Service<SetLightState>::SharedPtr srv_set_light_state_;
 
+  // Timer used to update the base state
+  rclcpp::TimerBase::SharedPtr timer_;
+
   // If publish_tf_ is true, this is the broadcaster used to publish the odom->base_link TF
   tf2_ros::TransformBroadcaster tf_broadcaster_odom_;
+
+  // Timeout for base velocity
+  rclcpp::Duration cmd_vel_timeout_;
+
+  // Time last velocity command was received
+  rclcpp::Time cmd_vel_time_last_update_;
 
   /**
    * @brief Process incoming Twist command message
@@ -192,6 +201,6 @@ private:
   float wrap_angle(float angle);
 };
 
-} // namespace slate_base
+}  // namespace slate_base
 
-#endif // INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_
+#endif  // INTERBOTIX_SLATE_DRIVER__SLATE_BASE_HPP_

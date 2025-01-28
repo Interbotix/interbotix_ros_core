@@ -23,7 +23,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(trossen_slate REQUIRED)
 
-include_directories(include ${trossen_slate_INCLUDE_DIRS})
+include_directories(include)
 
 set(ROS_DEPENDENCIES
   geometry_msgs
@@ -38,46 +38,16 @@ set(ROS_DEPENDENCIES
   trossen_slate
 )
 
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-  set(ARCH "x86_64")
-elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-  set(ARCH "aarch64")
-else()
-  message(FATAL_ERROR "Unknown System Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-endif()
-
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH})
-
-add_library(slate_base
+add_executable(slate_base_node
+  src/slate_base_node.cpp
   src/slate_base.cpp
 )
 
-ament_target_dependencies(slate_base ${ROS_DEPENDENCIES})
-
-target_link_libraries(slate_base
-${trossen_slate_LIBRARIES}
-)
-
-add_executable(slate_base_node
-  src/slate_base_node.cpp
-)
-
-target_link_libraries(slate_base_node
-  slate_base
-)
+ament_target_dependencies(slate_base_node ${ROS_DEPENDENCIES})
 
 install(
-  TARGETS slate_base
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
-
-install(
-  TARGETS
-    slate_base_node
-  RUNTIME DESTINATION
-    lib/${PROJECT_NAME}
+  TARGETS slate_base_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)

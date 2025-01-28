@@ -35,8 +35,10 @@ namespace slate_base
 {
 
 SlateBase::SlateBase(const rclcpp::NodeOptions & options)
-: trossen_slate::TrossenSlate(), rclcpp::Node("slate_base", options), sys_cmd_{0},
-  publish_tf_(false), current_time_(get_clock()->now()), tf_broadcaster_odom_(this)
+: trossen_slate::TrossenSlate(), rclcpp::Node("slate_base", options), cnt_(0), pose_{0},
+  publish_tf_(false), is_first_odom_(0), current_time_(get_clock()->now()), tf_broadcaster_odom_(
+    this), cmd_vel_time_last_update_(get_clock()->now()),
+  cmd_vel_timeout_(rclcpp::Duration(std::chrono::milliseconds(CMD_TIME_OUT)))
 {
   using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
@@ -72,6 +74,8 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
     "set_light_state",
     std::bind(&SlateBase::set_light_state_callback, this, _1, _2, _3));
 
+  timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&SlateBase::update, this));
+
   std::string result;
   if (!init_base(result)) {
     RCLCPP_FATAL(get_logger(), result.c_str());
@@ -84,8 +88,13 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
 
 void SlateBase::update()
 {
-  rclcpp::spin_some(get_node_base_interface());
   current_time_ = get_clock()->now();
+
+  // Time out velocity commands
+  if (current_time_ - cmd_vel_time_last_update_ > cmd_vel_timeout_) {
+    data_.cmd_vel_x = 0.0f;
+    data_.cmd_vel_z = 0.0f;
+  }
 
   if (!base_driver::updateChassisInfo(&data_)) {
     return;
@@ -97,9 +106,12 @@ void SlateBase::update()
   if (cnt_ % 10 == 0) {
     battery_state.header.stamp = current_time_;
     battery_state.voltage = data_.voltage;
+    battery_state.temperature = std::numeric_limits<double>::quiet_NaN();
     battery_state.current = data_.current;
+    battery_state.charge = std::numeric_limits<double>::quiet_NaN();
+    battery_state.capacity = std::numeric_limits<double>::quiet_NaN();
+    battery_state.design_capacity = std::numeric_limits<double>::quiet_NaN();
     battery_state.percentage = data_.charge;
-    battery_state.power_supply_status = data_.system_state;
     pub_battery_state_->publish(battery_state);
   }
 
@@ -157,6 +169,7 @@ void SlateBase::cmd_vel_callback(const Twist::SharedPtr msg)
 {
   data_.cmd_vel_x = msg->linear.x;
   data_.cmd_vel_z = msg->linear.z;
+  cmd_vel_time_last_update_ = get_clock()->now();
 }
 
 bool SlateBase::set_text_callback(
@@ -220,4 +233,4 @@ float SlateBase::wrap_angle(float angle)
   return angle;
 }
 
-} // namespace slate_base
+}  // namespace slate_base
