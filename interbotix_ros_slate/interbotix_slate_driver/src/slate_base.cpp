@@ -42,12 +42,12 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
 {
   using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
-  declare_parameter<int>("frequency", 10);
+  declare_parameter<int>("update_frequency", 20);
   declare_parameter<bool>("publish_tf", false);
   declare_parameter<std::string>("odom_frame_name", "odom");
   declare_parameter<std::string>("base_frame_name", "base_link");
 
-  get_parameter("frequency", frequency_);
+  get_parameter("update_frequency", frequency_);
   get_parameter("publish_tf", publish_tf_);
   get_parameter("odom_frame_name", odom_frame_name_);
   get_parameter("base_frame_name", base_frame_name_);
