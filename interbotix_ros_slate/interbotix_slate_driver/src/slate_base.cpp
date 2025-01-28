@@ -42,10 +42,12 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
 {
   using std::placeholders::_1, std::placeholders::_2, std::placeholders::_3;
 
+  declare_parameter<int>("frequency", 10);
   declare_parameter<bool>("publish_tf", false);
   declare_parameter<std::string>("odom_frame_name", "odom");
   declare_parameter<std::string>("base_frame_name", "base_link");
 
+  get_parameter("frequency", frequency_);
   get_parameter("publish_tf", publish_tf_);
   get_parameter("odom_frame_name", odom_frame_name_);
   get_parameter("base_frame_name", base_frame_name_);
@@ -74,16 +76,15 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
     "set_light_state",
     std::bind(&SlateBase::set_light_state_callback, this, _1, _2, _3));
 
-  timer_ = create_wall_timer(std::chrono::milliseconds(50), std::bind(&SlateBase::update, this));
+  auto duration = std::chrono::milliseconds(1000 / frequency_);
+  timer_ = create_wall_timer(duration, std::bind(&SlateBase::update, this));
 
   std::string result;
   if (!init_base(result)) {
     RCLCPP_FATAL(get_logger(), result.c_str());
-    rclcpp::shutdown();
   } else {
     RCLCPP_INFO(get_logger(), result.c_str());
   }
-
 }
 
 void SlateBase::update()
@@ -113,9 +114,11 @@ void SlateBase::update()
     battery_state.capacity = std::numeric_limits<double>::quiet_NaN();
     battery_state.design_capacity = std::numeric_limits<double>::quiet_NaN();
     battery_state.percentage = data_.charge;
+    battery_state.present = true;
     pub_battery_state_->publish(battery_state);
   }
 
+  // Set initial pose
   if (is_first_odom_) {
     pose_[0] = data_.odom_x;
     pose_[1] = data_.odom_y;
@@ -169,7 +172,7 @@ void SlateBase::update()
 void SlateBase::cmd_vel_callback(const Twist::SharedPtr msg)
 {
   data_.cmd_vel_x = msg->linear.x;
-  data_.cmd_vel_z = msg->linear.z;
+  data_.cmd_vel_z = msg->angular.z;
   cmd_vel_time_last_update_ = get_clock()->now();
 }
 

@@ -79,6 +79,9 @@ private:
   // Update counter used to update the battery status less frequently
   int cnt_;
 
+  // Frequency of the update timer
+  int frequency_;
+
   // Array containing x and y translation in meters and rotation in radians
   float pose_[3];
 
