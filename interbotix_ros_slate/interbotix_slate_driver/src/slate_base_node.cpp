@@ -33,8 +33,7 @@
 int main(int argc, char ** argv)
 {
   rclcpp::init(argc, argv);
-  auto node = std::make_shared<slate_base::SlateBase>();
-  rclcpp::spin(node);
+  rclcpp::spin(std::make_shared<slate_base::SlateBase>());
   rclcpp::shutdown();
   return 0;
 }
