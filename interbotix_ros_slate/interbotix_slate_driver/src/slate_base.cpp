@@ -96,6 +96,7 @@ void SlateBase::update()
     data_.cmd_vel_z = 0.0f;
   }
 
+  // Update base state
   if (!base_driver::updateChassisInfo(&data_)) {
     return;
   }
@@ -212,12 +213,9 @@ bool SlateBase::set_light_state_callback(
   const std::shared_ptr<SetLightState::Request> req,
   const std::shared_ptr<SetLightState::Response> res)
 {
-  // Cast the light_state from the request to the LightState enum class
   LightState light_state = static_cast<LightState>(req->light_state);
-
-  // Call the set_light_state method with the casted light_state
   res->success = set_light_state(light_state);
-  res->message = "Set light state to: " + std::to_string(req->light_state);
+  res->message = "Set light state to: '" + std::to_string(req->light_state) + "'.";
   data_.light_state = req->light_state;
   RCLCPP_INFO(get_logger(), res->message.c_str());
   return true;
