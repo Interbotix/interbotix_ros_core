@@ -73,8 +73,13 @@ SlateBase::SlateBase(const rclcpp::NodeOptions & options)
     std::bind(&SlateBase::set_light_state_callback, this, _1, _2, _3));
 
   std::string result;
-  init_base(result);
-  RCLCPP_ERROR(get_logger(), result.c_str());
+  if (!init_base(result)) {
+    RCLCPP_FATAL(get_logger(), result.c_str());
+    rclcpp::shutdown();
+  } else {
+    RCLCPP_INFO(get_logger(), result.c_str());
+  }
+
 }
 
 void SlateBase::update()
