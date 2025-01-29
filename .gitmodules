@@ -6,3 +6,6 @@
 	path = interbotix_ros_xseries/interbotix_xs_driver
 	url = https://github.com/Interbotix/interbotix_xs_driver.git
 	branch = v0.3.3
+[submodule "interbotix_ros_slate/trossen_slate"]
+	path = interbotix_ros_slate/trossen_slate
+	url = https://github.com/Interbotix/trossen_slate.git

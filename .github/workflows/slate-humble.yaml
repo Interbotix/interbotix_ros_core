@@ -24,6 +24,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           path: src/interbotix_ros_core
+          submodules: recursive
       - name: Prepare Workspace
         run: |
           rm src/interbotix_ros_core/interbotix_ros_slate/COLCON_IGNORE

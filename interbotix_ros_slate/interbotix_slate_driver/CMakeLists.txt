@@ -11,8 +11,6 @@ endif()
 
 set(CMAKE_BUILD_TYPE "Release")
 
-set(serial_driver "chassis_driver")
-
 find_package(ament_cmake REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(interbotix_slate_msgs REQUIRED)
@@ -23,6 +21,7 @@ find_package(std_msgs REQUIRED)
 find_package(std_srvs REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
 find_package(tf2_ros REQUIRED)
+find_package(trossen_slate REQUIRED)
 
 include_directories(include)
 
@@ -36,56 +35,19 @@ set(ROS_DEPENDENCIES
   std_srvs
   tf2_geometry_msgs
   tf2_ros
-)
-
-if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
-  set(ARCH "x86_64")
-elseif(${CMAKE_SYSTEM_PROCESSOR} MATCHES "aarch64")
-  set(ARCH "aarch64")
-else()
-  message(FATAL_ERROR "Unknown System Architecture: ${CMAKE_SYSTEM_PROCESSOR}")
-endif()
-
-link_directories(${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH})
-
-add_library(slate_base
-  src/slate_base.cpp
-  src/base_driver.cpp
-)
-
-ament_target_dependencies(slate_base ${ROS_DEPENDENCIES})
-
-target_link_libraries(slate_base
-  ${serial_driver}
+  trossen_slate
 )
 
 add_executable(slate_base_node
   src/slate_base_node.cpp
+  src/slate_base.cpp
 )
 
-target_link_libraries(slate_base_node
-  slate_base
-)
-
-install(
-  TARGETS slate_base
-  ARCHIVE DESTINATION lib
-  LIBRARY DESTINATION lib
-  RUNTIME DESTINATION bin
-)
+ament_target_dependencies(slate_base_node ${ROS_DEPENDENCIES})
 
 install(
-  TARGETS
-    slate_base_node
-  RUNTIME DESTINATION
-    lib/${PROJECT_NAME}
-)
-
-install(
-  FILES
-    ${CMAKE_CURRENT_SOURCE_DIR}/lib/${ARCH}/lib${serial_driver}.so
-  DESTINATION
-    lib
+  TARGETS slate_base_node
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 if(BUILD_TESTING)
